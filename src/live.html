@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Fuchitron — Spectating</title>
+    <link rel="icon" type="image/svg+xml" href="/icons/logo.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <img src="/icons/logo.svg" alt="Logo Fuchitron" class="brand-logo" />
+          <h1>FUCHITRON</h1>
+        </div>
+        <div class="live-dot" id="liveDot"><span class="dot"></span></div>
+      </div>
+    </header>
+
+    <main class="app spectate-view" id="spectateView">
+      <div class="spectate-no-code" id="noCode">
+        <p>No se proporcionó código de partido.</p>
+        <small>Accedé desde el link que te pasaron en Fuchitron.</small>
+      </div>
+
+      <section class="live-block cardless" id="liveBlock" hidden>
+        <div class="live-row">
+          <div class="live-pill"><span class="dot"></span>EN VIVO</div>
+          <div class="period" id="periodLabel">1T</div>
+        </div>
+        <div class="clock" id="clock">00:00</div>
+        <div class="overtime" id="overtime"></div>
+      </section>
+
+      <section class="scoreboard" id="scoreboard" hidden>
+        <div class="team-slot">
+          <small class="team-tag">LOCAL</small>
+          <article class="team-panel team-a">
+            <strong id="labelA"></strong>
+            <div class="score-number score-a" id="scoreA">0</div>
+          </article>
+        </div>
+        <div class="vs-chip">VS</div>
+        <div class="team-slot">
+          <small class="team-tag">VISITANTE</small>
+          <article class="team-panel team-b">
+            <strong id="labelB"></strong>
+            <div class="score-number score-b" id="scoreB">0</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="goal-timeline" id="timelineSection" hidden>
+        <h3>Timeline</h3>
+        <ul id="goalsList" class="goals-list"></ul>
+      </section>
+    </main>
+
+    <script>
+    const SUPABASE_URL = 'https://mbczsqzbgwimbelpglks.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iY3pzcXpiZ3dpbWJlbHBnbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NDM3NjEsImV4cCI6MjA5MTQxOTc2MX0.ig4ZQFLvigtjGBWMb5gJZKmKW4vCJbHam0_NfKAvL3s';
+
+    function getMatchCode() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('code');
+    }
+
+    function clockTxt(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function formatMinute(absSeconds) {
+      const m = Math.floor(absSeconds / 60);
+      return `${m}'`;
+    }
+
+    async function fetchMatch(code) {
+      const url = `${SUPABASE_URL}/rest/v1/matches?match_code=eq.${encodeURIComponent(code)}`;
+      const r = await fetch(url, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+      });
+      return r.json();
+    }
+
+    function renderMatch(m) {
+      document.getElementById('noCode').hidden = true;
+      document.getElementById('liveBlock').hidden = false;
+      document.getElementById('scoreboard').hidden = false;
+      document.getElementById('timelineSection').hidden = false;
+
+      const ta = m.team_a || 'LOCAL';
+      const tb = m.team_b || 'VISITANTE';
+      document.getElementById('labelA').textContent = ta;
+      document.getElementById('labelB').textContent = tb;
+      document.getElementById('scoreA').textContent = m.score_a || 0;
+      document.getElementById('scoreB').textContent = m.score_b || 0;
+
+      const matchStarted = !!m.match_start_ts || m.half_seconds > 0 || m.running || m.finished;
+      const half = m.current_half || 1;
+      const periodLabel = document.getElementById('periodLabel');
+      periodLabel.textContent = !matchStarted ? 'POR COMENZAR' : (half === 1 ? '1T' : (half === 2 ? '2T' : 'FIN'));
+
+      const clockEl = document.getElementById('clock');
+      const overtimeEl = document.getElementById('overtime');
+      if (!matchStarted) {
+        clockEl.hidden = true;
+        overtimeEl.hidden = true;
+      } else {
+        clockEl.hidden = false;
+        overtimeEl.hidden = false;
+        clockEl.textContent = clockTxt(m.half_seconds || 0);
+        const target = 45 * 60;
+        const over = (m.half_seconds || 0) - target;
+        overtimeEl.textContent = over > 0 ? `+${Math.floor((over - 1) / 60) + 1}` : '';
+      }
+
+      const dot = document.getElementById('liveDot');
+      dot.style.display = (m.running && !m.finished) ? 'flex' : 'none';
+    }
+
+    let pollInterval = null;
+
+    async function poll() {
+      const code = getMatchCode();
+      if (!code) return;
+      try {
+        const matches = await fetchMatch(code);
+        if (matches && matches.length > 0) {
+          renderMatch(matches[0]);
+        }
+      } catch(e) {
+        console.error('[spectate] poll error:', e);
+      }
+    }
+
+    function startPolling() {
+      poll();
+      pollInterval = setInterval(poll, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const code = getMatchCode();
+      if (!code) {
+        document.getElementById('noCode').hidden = false;
+        return;
+      }
+      startPolling();
+    });
+    </script>
+  </body>
+</html>

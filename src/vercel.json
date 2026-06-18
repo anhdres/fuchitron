@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/s/:code", "destination": "/spectate.html?code=:code" },
+    { "source": "/live/:code", "destination": "/live.html?code=:code" }
+  ]
+}

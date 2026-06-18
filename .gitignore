@@ -1,0 +1,68 @@
+# Fuchitron — gitignore
+
+# ─── OS junk ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ─── Editors ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Adobe / Figma / Sketch sources ───────────────────────
+*.ai
+*.fig
+*.sketch
+*.afdesign
+*.afphoto
+*.psd
+*.xd
+
+# ─── Variant / backup / test assets ───────────────────────
+# Cualquier archivo con estos sufijos en cualquier carpeta
+*-backup.*
+*-test.*
+*-new.*
+*-old.*
+*-final.*
+*-temp.*
+*-tmp.*
+*-copy.*
+*_backup.*
+*_test.*
+*_new.*
+*_old.*
+*_final.*
+*_temp.*
+*_tmp.*
+*_copy.*
+*-og.*
+*-rendered.*
+*-rsng.*
+*-t2.*
+*-v[0-9].*
+
+# ─── Logs / runtime ───────────────────────────────────────
+*.log
+*.tmp
+*.wav.tmp
+backups/
+backups/
+backups/
+node_modules/
+
+# ─── Local-only deploy shim ───────────────────────────────
+.vercel/
+
+# ─── Internal notes (kept in workspace only, never in repo) ──
+# Si en algún momento movemos docs sensibles a una subcarpeta:
+# Fuchitron-private-notes/
+# Fuchitron-internal/

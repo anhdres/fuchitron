@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Fuchitron — Marcador de fútbol amateur en tiempo real</title>
+    <meta name="description" content="Fuchitron es un marcador web app para fútbol amateur: goles, cronómetro, timeline y compartir resultados al toque." />
+    <meta name="keywords" content="marcador futbol amateur, app marcador futbol, cronometro partido, goles en tiempo real, compartir resultado whatsapp" />
+    <meta name="author" content="Andrés + ishirock" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://fuchitron.app/" />
+    <meta name="theme-color" content="#000000" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fuchitron" />
+    <meta property="og:title" content="Fuchitron — Marcador de fútbol amateur" />
+    <meta property="og:description" content="Marcador simple para cancha real: goles, tiempo y timeline en una sola pantalla." />
+    <meta property="og:url" content="https://fuchitron.vercel.app/" />
+    <meta property="og:image" content="https://fuchitron.app/icons/og-image.png" />
+    <meta property="og:image:alt" content="Logo de Fuchitron" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fuchitron — Marcador de fútbol amateur" />
+    <meta name="twitter:description" content="Goles, cronómetro y timeline para partidos amateur." />
+    <meta name="twitter:image" content="https://fuchitron.app/icons/og-image.png" />
+
+    <link rel="icon" type="image/svg+xml" href="/icons/logo.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="manifest" href="manifest.json" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Fuchitron",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "Web",
+        "url": "https://fuchitron.app/",
+        "image": "https://fuchitron.app/icons/og-image.png",
+        "description": "Marcador de fútbol amateur con goles, cronómetro y timeline.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Lexend:wght@400;700;900&family=Anton+SC&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,700,1,0" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="goalBanner" class="goal-banner">GOOOOL ⚽</div>
+    <div id="updateBanner" class="update-banner" hidden>
+      <span>Hay una nueva versión de Fuchitron.</span>
+      <button id="updateNow" class="update-btn">Actualizar ahora</button>
+    </div>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <div class="settings-dialog-header">
+        <h2 data-i18n="ajustes">Ajustes</h2>
+        <button id="closeSettings" class="icon-btn" aria-label="Cerrar ajustes">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="settings-dialog-body">
+        <div class="settings-grid">
+          <label id="lblDuration">Duración del partido</label>
+          <div class="pill-group" id="durationGroup" data-key="periodMinutes">
+            <button class="pill-btn" data-value="10">10</button>
+            <button class="pill-btn" data-value="15">15</button>
+            <button class="pill-btn" data-value="30">30</button>
+            <button class="pill-btn" data-value="45">45</button>
+          </div>
+          <label id="lblTeamA">Equipo Local
+            <input id="teamA" maxlength="15" placeholder="Los Pibes" />
+          </label>
+          <label id="lblColorA">Color Local
+            <div id="paletteA1" class="palette"></div>
+          </label>
+          <label id="lblTeamB">Equipo Visitante
+            <input id="teamB" maxlength="15" placeholder="La Banda" />
+          </label>
+          <label id="lblColorB">Color Visitante
+            <div id="paletteB1" class="palette"></div>
+          </label>
+          <label id="lblLang">Idioma</label>
+          <div class="pill-group" id="langGroup" data-key="lang">
+            <button class="pill-btn" data-value="es">ES</button>
+            <button class="pill-btn" data-value="en">EN</button>
+            <button class="pill-btn" data-value="de">DE</button>
+            <button class="pill-btn" data-value="pt">PT</button>
+            <button class="pill-btn" data-value="fr">FR</button>
+            <button class="pill-btn" data-value="it">IT</button>
+            <button class="pill-btn" data-value="zh">中文</button>
+          </div>
+          <label id="lblKeepScreenOn" data-i18n="mantenerPantalla">Mantener pantalla encendida</label>
+          <div class="toggle-row">
+            <label class="switch">
+              <input type="checkbox" id="keepScreenOn" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="coming-soon" data-i18n="comingSoon">🎯 En desarrollo: penaltis, tiempo supplementario</div>
+        <div class="settings-dialog-footer">
+          <small>¿Preguntas? ¿Ideas? <a href="mailto:feedback@fuchitron.app">feedback@fuchitron.app</a></small>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="shareDialog" class="settings-dialog">
+      <div class="settings-dialog-header">
+        <h2>Compartir</h2>
+        <button id="closeShare" class="icon-btn" aria-label="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="settings-dialog-body">
+        <div class="share-dialog-columns">
+          <div class="share-col">
+            <p class="share-section-label" data-i18n="imagen">Imagen</p>
+            <canvas id="shareCanvas" class="share-canvas"></canvas>
+            <label id="lblIncludeDate">
+              <input type="checkbox" id="includeDate" />
+              <span data-i18n="incluirFecha">Incluir fecha</span>
+            </label>
+            <div class="share-col-actions">
+              <button id="shareImageBtn" class="share-dialog-btn">
+                <span class="material-symbols-outlined">share</span>
+                <span data-i18n="whatsApp">WhatsApp</span>
+              </button>
+              <button id="copyImageBtn" class="share-dialog-btn ghost">
+                <span class="material-symbols-outlined">content_copy</span>
+                <span data-i18n="copiar">Copiar</span>
+              </button>
+              <button id="downloadImageBtn" class="share-dialog-btn ghost">
+                <span class="material-symbols-outlined">download</span>
+                <span data-i18n="descargar">Descargar</span>
+              </button>
+            </div>
+          </div>
+          <div class="share-col">
+            <p class="share-section-label" data-i18n="texto">Texto</p>
+            <div id="shareTextPreview" class="share-text-preview"></div>
+            <label id="lblIncludeDateText">
+              <input type="checkbox" id="includeDateText" />
+              <span data-i18n="mostrarFechaTexto">Mostrar fecha</span>
+            </label>
+            <label id="lblStylizedText">
+              <input type="checkbox" id="stylizedText" checked />
+              <span data-i18n="formatoTexto">Formato texto</span>
+            </label>
+            <div class="share-col-actions">
+              <button id="shareTextBtn" class="share-dialog-btn">
+                <span class="material-symbols-outlined">share</span>
+                <span data-i18n="whatsApp">WhatsApp</span>
+              </button>
+              <button id="createSpectateBtn" class="share-dialog-btn ghost">
+                <span class="material-symbols-outlined">link</span>
+                <span>Spectate link</span>
+              </button>
+              <button id="copyTextBtn" class="share-dialog-btn ghost">
+                <span class="material-symbols-outlined">content_copy</span>
+                <span data-i18n="copiar">Copiar</span>
+              </button>
+              <button id="downloadTxtBtn" class="share-dialog-btn ghost">
+                <span class="material-symbols-outlined">download</span>
+                <span>.txt</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <img src="/icons/logo.svg" alt="Logo Fuchitron" class="brand-logo" />
+          <h1>FUCHITRON</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="fullscreenBtn" class="icon-btn" aria-label="Pantalla completa" data-i18n-title="pantallaCompleta">
+            <span class="material-symbols-outlined">fullscreen</span>
+          </button>
+          <button id="shareBtn" class="icon-btn" aria-label="Compartir">
+            <span class="material-symbols-outlined">share</span>
+          </button>
+          <button id="settingsBtn" class="icon-btn" aria-label="Abrir ajustes">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app">
+      <section class="live-block cardless">
+        <div class="live-row">
+          <div id="livePill" class="live-pill" hidden><span class="dot"></span>RESULTADO PARCIAL</div>
+          <div class="period" id="periodLabel">1T</div>
+        </div>
+        <div class="clock" id="clock">00:00</div>
+        <div class="overtime" id="overtime"></div>
+      </section>
+
+      <section class="scoreboard">
+        <div class="team-slot">
+          <small class="team-tag" id="tagA">LOCAL</small>
+          <article class="team-panel team-a" id="chipA">
+            <strong id="labelA"></strong>
+            <div class="score-number score-a" id="scoreA">0</div>
+          </article>
+        </div>
+
+        <div class="team-slot">
+          <small class="team-tag" id="tagB">VISITANTE</small>
+          <article class="team-panel team-b" id="chipB">
+            <strong id="labelB"></strong>
+            <div class="score-number score-b" id="scoreB">0</div>
+          </article>
+        </div>
+
+        <div class="vs-chip">VS</div>
+      </section>
+
+      <section class="goal-buttons-outside">
+        <button id="plusA" class="goal-btn goal-btn-a">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>GOL LOCAL</span>
+        </button>
+        <button id="plusB" class="goal-btn goal-btn-b">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>GOL VISITANTE</span>
+        </button>
+      </section>
+
+      <section class="card timer-box">
+        <div class="timer-actions">
+          <button id="startPause" class="icon-label-btn icon-left">
+            <span class="material-symbols-outlined">timer_play</span>
+            <span>Iniciar</span>
+          </button>
+          <button id="nextPeriod" class="ghost icon-label-btn icon-left">
+            <span class="material-symbols-outlined">timer_off</span>
+            <span>Terminar 1T</span>
+          </button>
+          <button id="resetTimer" class="ghost icon-label-btn icon-left">
+            <span class="material-symbols-outlined">restart_alt</span>
+            <span>Nuevo partido</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="timelineSection" class="card timeline-card" hidden>
+        <div class="section-head">
+          <h2>Timeline</h2>
+        </div>
+        <ul id="goalsList"></ul>
+      </section>
+
+      <div class="install-pwa-row">
+        <button id="installApp" class="install-btn" hidden>Instalá Fuchitron</button>
+        <p id="installHint" class="install-hint" hidden>Instalá Fuchitron como app para abrirla full-screen y usarla offline.</p>
+      </div>
+
+      <p id="tagline" class="tiny">Marcador pro para fútbol amateur: rápido, legible al sol y gratarola.</p>
+    </main>
+
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script src="i18n.js"></script>
+  <script src="app.js"></script>
+  </body>
+</html>
