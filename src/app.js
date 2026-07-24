@@ -33,8 +33,8 @@ const state = {
 };
 
 // Supabase for spectator links
-const SUPABASE_URL = 'https://mbczsqzbgwimbelpglks.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iY3pzcXpiZ3dpbWJlbHBnbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NDM3NjEsImV4cCI6MjA5MTQxOTc2MX0.ig4ZQFLvigtjGBWMb5gJZKmKW4vCJbHam0_NfKAvL3s';
+const SUPABASE_URL = 'https://jorehxhrnpggvsgdnrpk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_grJRaqShOSYw5H2fBdEyAA_84EUY-tB';
 
 const $ = id => document.getElementById(id);
 const els = {
