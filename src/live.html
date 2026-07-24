@@ -78,8 +78,14 @@
     }
 
     function getMatchCode() {
+      // 1. Try query string first (legacy /live.html?code=XXXXX)
       const params = new URLSearchParams(window.location.search);
-      return params.get('code');
+      const fromQuery = params.get('code');
+      if (fromQuery) return fromQuery;
+      // 2. Fallback: read from path (e.g. /live/BLSH8S) — vercel.json rewrites /live/:code to /live.html
+      const path = window.location.pathname;
+      const match = path.match(/\/live\/([A-Z0-9]+)/i);
+      return match ? match[1] : null;
     }
 
     function clockTxt(seconds) {

@@ -1,11 +1,16 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
     <title>Redirecting...</title>
     <script>
-      const params = window.location.search;
-      const code = new URLSearchParams(params).get('code');
+      // 1. Try query string first (legacy /spectate.html?code=***)
+      const fromQuery = new URLSearchParams(window.location.search).get('code');
+      // 2. Fallback: read from path (e.g. /s/BLSH8S) — vercel.json rewrites /s/:code to /spectate.html
+      let code = fromQuery;
+      if (!code) {
+        const match = window.location.pathname.match(/\/s\/([A-Z0-9]+)/i);
+        if (match) code = match[1];
+      }
       window.location.replace('/live/' + (code || ''));
     </script>
   </head>
