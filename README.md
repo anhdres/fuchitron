@@ -1,14 +1,14 @@
 # Fuchitron ⚽
 
-Marcador y cronómetro para fútbol amateur. Mobile-first, PWA, multi-idioma.
+A scoreboard and timer for amateur football. Mobile-first, PWA, multilingual.
 
 🌐 [fuchitron.app](https://fuchitron.app) · [fuchitron.vercel.app](https://fuchitron.vercel.app)
 
-## Estructura del repo
+## Repo structure
 
 ```
 fuchitron/
-├── src/              ← LO QUE SE DEPLIEGA. SOLO app + assets que la app necesita.
+├── src/              ← WHAT GETS DEPLOYED. ONLY app + assets the app needs.
 │   ├── index.html
 │   ├── live.html
 │   ├── spectate.html
@@ -18,22 +18,27 @@ fuchitron/
 │   ├── sw.js
 │   ├── manifest.json
 │   ├── vercel.json
-│   └── icons/        ← solo los íconos referenciados por manifest.json / index.html
-└── docs/             ← work docs internos (NO se despliegan)
+│   └── icons/        ← only icons referenced by manifest.json / index.html
+└── docs/             ← internal work docs (NOT deployed)
     ├── NOTES.md
-    └── FEATURES.md
-└── scripts/          ← scripts operativos (NO se despliegan)
+    ├── FEATURES.md
+    └── AUDIT-*.md
+└── scripts/          ← operational scripts (NOT deployed)
     └── backup.sh
 └── .githooks/        ← pre-commit hygiene check
+└── .github/
+    └── workflows/    ← GitHub Actions (heartbeat, etc.)
 ```
 
-**Regla de oro:** cualquier archivo nuevo dentro de `src/` debe ser estrictamente
-necesario para que la app funcione en producción. Si es para nuestro uso interno
-(docs, scripts, pruebas, variantes), va en `docs/` o `scripts/` — o no se commitea.
+**Golden rule:** any new file inside `src/` must be strictly required for the
+app to run in production. If it's for our internal use (docs, scripts, tests,
+asset variants), it goes in `docs/` or `scripts/` — or it doesn't get committed.
+
+The `scripts/check-hygiene.sh` script (run as a pre-commit hook) enforces this.
 
 ## Deploy
 
-Push a `main` → Vercel auto-deploya desde `src/`.
+Push to `main` → Vercel auto-deploys from `src/`.
 
 ```bash
 git add -A
@@ -41,14 +46,39 @@ git commit -m "..."
 git push origin main
 ```
 
+The Vercel project (`lavadero/fuchitron`, `prj_buOScXCL0MVeBxAgafKI7KswI6n8`)
+is linked to this GitHub repo. Each push triggers a production deploy.
+
 ## i18n
 
-Idiomas soportados: `es`, `en`, `de`, `pt`, `fr`, `it`, `zh`. Source: `src/i18n.js`.
+Supported languages: `es`, `en`, `de`, `pt`, `fr`, `it`, `zh`. Source of truth:
+`src/i18n.js`. URL parameter `?lang=<code>` overrides the auto-detect.
 
 ## PWA
 
-`manifest.json` + `sw.js` permiten instalar en mobile y funcionar offline.
+`manifest.json` + `sw.js` allow installing on mobile and working offline.
+The service worker caches core assets and uses a `CACHE_VERSION` constant —
+bump it on each deploy to bust stale caches.
 
 ## Spectator link
 
-`live.html` y `spectate.html` permiten seguir partidos en tiempo real vía link.
+`live.html` and `spectate.html` let anyone follow a match in real time via a
+shared link. The host creates a spectate link from the share dialog, the URL
+looks like `https://fuchitron.app/live/XXXXXX` (or the short form `/s/XXXXXX`).
+
+State is synced to Supabase (matches table). The spectator polls every 3s
+and renders score, clock, period, and goal timeline.
+
+A GitHub Actions workflow (`.github/workflows/supabase-heartbeat.yml`) pings
+the Supabase project every 3 days to keep it warm on the free tier (Supabase
+pauses idle projects after 7 days).
+
+## Contributing
+
+1. Make the change in `src/`.
+2. Run `bash scripts/check-hygiene.sh` before committing.
+3. Commit and push to `main`.
+
+## License
+
+UNLICENSED — personal project.
