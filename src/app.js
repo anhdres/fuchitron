@@ -927,10 +927,9 @@ els.createSpectateBtn?.addEventListener('click', async () => {
   // If we already have a spectate code for this match, just re-copy the link
   // instead of creating a new orphan in Supabase.
   if (state.spectateCode) {
-    const url = `${window.location.origin}/live/${state.spectateCode}?lang=${encodeURIComponent(state.lang)}`;
-    const shareText = `🔥 ${t('spectateShareText')} ${url}`;
+    const url = `${window.location.origin}/live/${state.spectateCode}`;
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(url);
       alert(t('spectateToast'));
     } catch {
       prompt(t('spectatePrompt'), url);
@@ -972,10 +971,9 @@ els.createSpectateBtn?.addEventListener('click', async () => {
   state.spectateCode = code;
   save();
   await updateSpectateMatch(code);
-  const spectateUrl = `${window.location.origin}/live/${code}?lang=${encodeURIComponent(state.lang)}`;
-  const shareText = `🔥 ${t('spectateShareText')} ${spectateUrl}`;
+  const spectateUrl = `${window.location.origin}/live/${code}`;
   if (navigator.clipboard) {
-    await navigator.clipboard.writeText(shareText);
+    await navigator.clipboard.writeText(spectateUrl);
     alert(t('spectateToast'));
   } else {
     prompt(t('spectatePrompt'), spectateUrl);
