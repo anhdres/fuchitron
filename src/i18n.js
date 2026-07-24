@@ -78,6 +78,17 @@ const I18N = {
     // Periods
     t1: '1T',
     t2: '2T',
+
+    // Spectate link
+    spectateLink: 'Link para seguir en vivo',
+    spectateShareText: 'Seguí este partido en vivo:',
+    spectateToast: '¡Link copiado!',
+    spectatePrompt: 'Compartí este link:',
+    spectateError: 'No pude crear el link. Probá de nuevo.',
+
+    // Snackbar
+    golBorrado: 'Gol borrado',
+    deshacer: 'Deshacer',
   },
 
   en: {
@@ -151,6 +162,13 @@ const I18N = {
     tiempoLabel: 'Time',
 
     t1: '1st',
+
+    // Spectate link
+    spectateLink: 'Follow live link',
+    spectateShareText: 'Follow this match live:',
+    spectateToast: 'Link copied!',
+    spectatePrompt: 'Share this link:',
+    spectateError: 'Could not create the link. Try again.',
     t2: '2nd',
   },
 
@@ -225,6 +243,13 @@ const I18N = {
     tiempoLabel: '时间',
 
     t1: '第1节',
+
+    // Spectate link
+    spectateLink: '直播链接',
+    spectateShareText: '实时关注比赛:',
+    spectateToast: '链接已复制！',
+    spectatePrompt: '分享此链接：',
+    spectateError: '无法创建链接，请重试。',
     t2: '第2节',
   },
 
@@ -299,6 +324,13 @@ const I18N = {
     tiempoLabel: 'Zeit',
 
     t1: '1. HZ',
+
+    // Spectate link
+    spectateLink: 'Live-Link',
+    spectateShareText: 'Dieses Spiel live verfolgen:',
+    spectateToast: 'Link kopiert!',
+    spectatePrompt: 'Diesen Link teilen:',
+    spectateError: 'Link konnte nicht erstellt werden. Nochmal versuchen.',
     t2: '2. HZ',
   },
 
@@ -374,6 +406,13 @@ const I18N = {
 
     t1: '1T',
     t2: '2T',
+
+    // Spectate link
+    spectateLink: 'Link para acompanhar ao vivo',
+    spectateShareText: 'Acompanha este jogo ao vivo:',
+    spectateToast: 'Link copiado!',
+    spectatePrompt: 'Compartilha este link:',
+    spectateError: 'Não consegui criar o link. Tenta de novo.',
   },
 
   fr: {
@@ -447,6 +486,13 @@ const I18N = {
     tiempoLabel: 'Temps',
 
     t1: '1MT',
+
+    // Spectate link
+    spectateLink: 'Lien pour suivre en direct',
+    spectateShareText: 'Suivez ce match en direct :',
+    spectateToast: 'Lien copié !',
+    spectatePrompt: 'Partagez ce lien :',
+    spectateError: 'Impossible de créer le lien. Réessayez.',
     t2: '2MT',
   },
 
@@ -522,6 +568,13 @@ const I18N = {
 
     t1: '1T',
     t2: '2T',
+
+    // Spectate link
+    spectateLink: 'Link per seguire in diretta',
+    spectateShareText: 'Segui questa partita in diretta:',
+    spectateToast: 'Link copiato!',
+    spectatePrompt: 'Condividi questo link:',
+    spectateError: 'Impossibile creare il link. Riprova.',
   },
 };
 

@@ -1,13 +1,18 @@
-const CACHE_VERSION = 'v3'; // Update on each deploy to bust old caches
+const CACHE_VERSION = 'v4'; // Update on each deploy to bust old caches
 const CACHE_NAME = `fuchitron-${CACHE_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
+  './live.html',
+  './spectate.html',
   './styles.css',
   './app.js',
+  './i18n.js',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/og-image.png',
+  './icons/logo.svg'
 ];
 
 self.addEventListener('install', (event) => {

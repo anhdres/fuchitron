@@ -31,10 +31,13 @@ body {
   height: 64px;
   border-bottom: 2px solid var(--line);
   padding: 0 14px;
+  padding-top: env(safe-area-inset-top);
   background: #000;
   display: flex;
   flex-direction: row;
   align-items: center;
+  /* Ensure notch doesn't overlap content */
+  box-sizing: border-box;
 }
 .topbar-inner {
   display: flex;
@@ -682,11 +685,52 @@ input {
 }
 
 @media (max-width: 360px) {
-  .scoreboard, .goal-buttons-outside, .share-grid { grid-template-columns: 1fr; }
-  .vs-chip { display: none; }
+  /* Keep 2-column scoreboard even on very small phones — readability beats layout purity */
+  .scoreboard { gap: 4px; }
+  .team-panel { min-height: 130px; padding: 6px; gap: 6px; }
+  .score-number { font-size: clamp(56px, 22vw, 96px); }
+  .vs-chip { padding: 2px 6px; font-size: 11px; letter-spacing: 0.08em; }
+  .goal-btn { min-height: 88px; font-size: 15px; }
+  .goal-btn .material-symbols-outlined { font-size: 32px; }
+  .goal-buttons-outside { gap: 6px; }
 }
 
 /* Old share-dialog overrides — kept for backward compat, now redundant */
+
+/* Snackbar */
+.snackbar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  z-index: 50;
+  background: #111;
+  border: 2px solid #39ff14;
+  color: #fff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  animation: snackbarIn 200ms ease;
+}
+.snackbar-action {
+  background: #39ff14;
+  color: #000;
+  border: 2px solid #fff;
+  padding: 6px 12px;
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-height: 36px;
+}
+@keyframes snackbarIn {
+  from { transform: translateY(120%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
 /* Toggle switch */
 .toggle-row {

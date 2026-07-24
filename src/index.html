@@ -48,7 +48,11 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="goalBanner" class="goal-banner">GOOOOL ⚽</div>
+    <div id="goalBanner" class="goal-banner" aria-hidden="true">GOOOOL ⚽</div>
+    <div id="snackbar" class="snackbar" hidden role="status" aria-live="polite">
+      <span id="snackbarText"></span>
+      <button id="snackbarAction" class="snackbar-action"></button>
+    </div>
     <div id="updateBanner" class="update-banner" hidden>
       <span>Hay una nueva versión de Fuchitron.</span>
       <button id="updateNow" class="update-btn">Actualizar ahora</button>
@@ -154,9 +158,9 @@
                 <span class="material-symbols-outlined">share</span>
                 <span data-i18n="whatsApp">WhatsApp</span>
               </button>
-              <button id="createSpectateBtn" class="share-dialog-btn ghost">
+              <button id="createSpectateBtn" class="share-dialog-btn ghost" data-i18n="spectateLink">
                 <span class="material-symbols-outlined">link</span>
-                <span>Spectate link</span>
+                <span data-i18n="spectateLink">Spectate link</span>
               </button>
               <button id="copyTextBtn" class="share-dialog-btn ghost">
                 <span class="material-symbols-outlined">content_copy</span>
@@ -207,7 +211,7 @@
           <small class="team-tag" id="tagA">LOCAL</small>
           <article class="team-panel team-a" id="chipA">
             <strong id="labelA"></strong>
-            <div class="score-number score-a" id="scoreA">0</div>
+            <div class="score-number score-a" id="scoreA" aria-live="polite" aria-atomic="true">0</div>
           </article>
         </div>
 
@@ -215,7 +219,7 @@
           <small class="team-tag" id="tagB">VISITANTE</small>
           <article class="team-panel team-b" id="chipB">
             <strong id="labelB"></strong>
-            <div class="score-number score-b" id="scoreB">0</div>
+            <div class="score-number score-b" id="scoreB" aria-live="polite" aria-atomic="true">0</div>
           </article>
         </div>
 

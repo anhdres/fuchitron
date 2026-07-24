@@ -66,3 +66,5 @@ node_modules/
 # Si en algún momento movemos docs sensibles a una subcarpeta:
 # Fuchitron-private-notes/
 # Fuchitron-internal/
+# Backup files
+*.bak-*

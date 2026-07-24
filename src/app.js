@@ -242,7 +242,7 @@ function renderGoals() {
       li.innerHTML = `
         <span class="event-minute">${minuteLabel}</span>
         <span class="goal-meta">${item.text}</span>
-        <button class="ghost delete-goal" data-id="${item.id}">${t('borrar')}</button>
+        <button class="ghost delete-goal" data-id="${item.id}" aria-label="${t('borrar')}">${t('borrar')}</button>
       `;
     }
 
@@ -345,13 +345,60 @@ function addGoal(side) {
 function deleteGoalById(id) {
   const idx = state.goals.findIndex(g => g.id === id);
   if (idx < 0) return;
+  const removed = state.goals[idx];
   state.goals.splice(idx, 1);
   save(); render();
+  showUndoSnackbar(t('golBorrado'), () => {
+    state.goals.push(removed);
+    state.goals.sort((a, b) => (a.half - b.half) || (a.minute - b.minute));
+    save(); render();
+  });
 }
 
 function undoLastGoal() {
-  const last = state.goals[state.goals.length - 1];
-  if (last) deleteGoalById(last.id);
+  if (state.goals.length === 0) return;
+  deleteGoalById(state.goals[state.goals.length - 1].id);
+}
+
+// ── Snackbar (transient toast with optional action) ─────────────────
+let snackbarTimeout = null;
+let snackbarAction = null;
+function showUndoSnackbar(text, onUndo) {
+  const el = $('snackbar');
+  const textEl = $('snackbarText');
+  const actionEl = $('snackbarAction');
+  if (!el || !textEl || !actionEl) return;
+
+  if (snackbarTimeout) {
+    clearTimeout(snackbarTimeout);
+    snackbarTimeout = null;
+  }
+  if (snackbarAction) {
+    snackbarAction = null;
+    actionEl.replaceWith(actionEl.cloneNode(true));
+  }
+
+  textEl.textContent = text;
+  actionEl.textContent = t('deshacer');
+
+  const fresh = $('snackbarAction');
+  snackbarAction = onUndo;
+  fresh.addEventListener('click', () => {
+    if (snackbarAction) snackbarAction();
+    dismissSnackbar();
+  });
+
+  el.hidden = false;
+  snackbarTimeout = setTimeout(() => dismissSnackbar(), 5000);
+}
+function dismissSnackbar() {
+  const el = $('snackbar');
+  if (el) el.hidden = true;
+  if (snackbarTimeout) {
+    clearTimeout(snackbarTimeout);
+    snackbarTimeout = null;
+  }
+  snackbarAction = null;
 }
 
 // Screen Wake Lock — keep display on during match
@@ -877,11 +924,25 @@ els.downloadTxtBtn.addEventListener('click', () => {
   a.click();
 });
 els.createSpectateBtn?.addEventListener('click', async () => {
+  // If we already have a spectate code for this match, just re-copy the link
+  // instead of creating a new orphan in Supabase.
+  if (state.spectateCode) {
+    const url = `${window.location.origin}/live/${state.spectateCode}?lang=${encodeURIComponent(state.lang)}`;
+    const shareText = `🔥 ${t('spectateShareText')} ${url}`;
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert(t('spectateToast'));
+    } catch {
+      prompt(t('spectatePrompt'), url);
+    }
+    return;
+  }
+
   const code = generateMatchCode();
   const match = {
     match_code: code,
-    team_a: state.teamA || 'Local',
-    team_b: state.teamB || 'Visitante',
+    team_a: state.teamA || t('local'),
+    team_b: state.teamB || t('visitante'),
     score_a: (state.goals||[]).filter(g=>g.side==='A').length,
     score_b: (state.goals||[]).filter(g=>g.side==='B').length,
     current_half: state.currentHalf,
@@ -889,23 +950,35 @@ els.createSpectateBtn?.addEventListener('click', async () => {
     running: state.running,
     finished: state.finished,
     match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
+    period_minutes: state.periodMinutes,
+    language: state.lang,
+    goals: state.goals || [],
   };
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/matches`, {
-    method: 'POST',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(match),
-  });
-  const result = await r.json();
+  let r;
+  try {
+    r = await fetch(`${SUPABASE_URL}/rest/v1/matches`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify(match),
+    });
+  } catch (e) {
+    alert(t('spectateError'));
+    return;
+  }
+  if (!r.ok) {
+    alert(t('spectateError'));
+    return;
+  }
   state.spectateCode = code;
   save();
   await updateSpectateMatch(code);
-  const spectateUrl = `${window.location.origin}/live/${code}`;
-  const shareText = `🔥 Follow this match live: ${spectateUrl}`;
+  const spectateUrl = `${window.location.origin}/live/${code}?lang=${encodeURIComponent(state.lang)}`;
+  const shareText = `🔥 ${t('spectateShareText')} ${spectateUrl}`;
   if (navigator.clipboard) {
     await navigator.clipboard.writeText(shareText);
-    alert('Spectate link copied to clipboard!');
+    alert(t('spectateToast'));
   } else {
-    prompt('Share this link:', spectateUrl);
+    prompt(t('spectatePrompt'), spectateUrl);
   }
 });
 
@@ -918,8 +991,8 @@ function generateMatchCode() {
 
 async function updateSpectateMatch(code) {
   const match = {
-    team_a: state.teamA || 'Local',
-    team_b: state.teamB || 'Visitante',
+    team_a: state.teamA || t('local'),
+    team_b: state.teamB || t('visitante'),
     score_a: (state.goals||[]).filter(g=>g.side==='A').length,
     score_b: (state.goals||[]).filter(g=>g.side==='B').length,
     current_half: state.currentHalf,
@@ -927,12 +1000,17 @@ async function updateSpectateMatch(code) {
     running: state.running,
     finished: state.finished,
     match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
+    period_minutes: state.periodMinutes,
+    language: state.lang,
+    goals: state.goals || [],
   };
-  await fetch(`${SUPABASE_URL}/rest/v1/matches?match_code=eq.${encodeURIComponent(code)}`, {
-    method: 'PATCH',
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(match),
-  });
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/matches?match_code=eq.${encodeURIComponent(code)}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(match),
+    });
+  } catch (e) { /* spectator sync best-effort */ }
 }
 
 // Sync to Supabase every 10s when running
@@ -1057,9 +1135,15 @@ setupInstallPrompt();
 registerSW();
 
 if (state.running) {
+  // Recover from reload: recompute elapsed time from matchStartTS instead of
+  // incrementing halfSeconds (which would drift by however long the tab was closed).
+  state.halfSeconds = getElapsedSeconds();
+  els.clock.textContent = clockTxt(state.halfSeconds);
+  els.overtime.textContent = overtimeText();
   tick = setInterval(() => {
-    state.halfSeconds++;
-    els.clock.textContent = clockTxt(state.halfSeconds);
+    const elapsed = getElapsedSeconds();
+    state.halfSeconds = elapsed;
+    els.clock.textContent = clockTxt(elapsed);
     els.overtime.textContent = overtimeText();
     save();
   }, 1000);

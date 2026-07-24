@@ -20,13 +20,13 @@
 
     <main class="app spectate-view" id="spectateView">
       <div class="spectate-no-code" id="noCode">
-        <p>No se proporcionó código de partido.</p>
-        <small>Accedé desde el link que te pasaron en Fuchitron.</small>
+        <p id="noCodeText">No se proporcionó código de partido.</p>
+        <small id="noCodeHint">Accedé desde el link que te pasaron en Fuchitron.</small>
       </div>
 
       <section class="live-block cardless" id="liveBlock" hidden>
         <div class="live-row">
-          <div class="live-pill"><span class="dot"></span>EN VIVO</div>
+          <div class="live-pill"><span class="dot"></span><span id="livePillText">EN VIVO</span></div>
           <div class="period" id="periodLabel">1T</div>
         </div>
         <div class="clock" id="clock">00:00</div>
@@ -35,31 +35,47 @@
 
       <section class="scoreboard" id="scoreboard" hidden>
         <div class="team-slot">
-          <small class="team-tag">LOCAL</small>
+          <small class="team-tag" id="tagA">LOCAL</small>
           <article class="team-panel team-a">
             <strong id="labelA"></strong>
-            <div class="score-number score-a" id="scoreA">0</div>
+            <div class="score-number score-a" id="scoreA" aria-live="polite" aria-atomic="true">0</div>
           </article>
         </div>
         <div class="vs-chip">VS</div>
         <div class="team-slot">
-          <small class="team-tag">VISITANTE</small>
+          <small class="team-tag" id="tagB">VISITANTE</small>
           <article class="team-panel team-b">
             <strong id="labelB"></strong>
-            <div class="score-number score-b" id="scoreB">0</div>
+            <div class="score-number score-b" id="scoreB" aria-live="polite" aria-atomic="true">0</div>
           </article>
         </div>
       </section>
 
       <section class="goal-timeline" id="timelineSection" hidden>
-        <h3>Timeline</h3>
+        <h3 id="timelineTitle">Timeline</h3>
         <ul id="goalsList" class="goals-list"></ul>
       </section>
     </main>
 
     <script>
     const SUPABASE_URL = 'https://mbczsqzbgwimbelpglks.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iY3pzcXpiZ3dpbWJlbHBnbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NDM3NjEsImV4cCI6MjA5MTQxOTc2MX0.ig4ZQFLvigtjGBWMb5gJZKmKW4vCJbHam0_NfKAvL3s';
+    const SUPABASE_ANON_KEY = 'eyJhbG…vL3s';
+
+    // Minimal i18n for the spectator view — only strings rendered here.
+    const SPECTATE_I18N = {
+      es: { local: 'LOCAL', visitante: 'VISITANTE', enVivo: 'EN VIVO', porComenzar: 'POR COMENZAR', finalizado: 'FINAL', timeline: 'Timeline', sinEventos: 'Sin eventos todavía.', gol: 'Gol', finalPartido: 'Final del partido', noCode: 'No se proporcionó código de partido.', noCodeHint: 'Accedé desde el link que te pasaron en Fuchitron.' },
+      en: { local: 'HOME', visitante: 'AWAY', enVivo: 'LIVE', porComenzar: 'NOT STARTED', finalizado: 'FULL TIME', timeline: 'Timeline', sinEventos: 'No events yet.', gol: 'Goal', finalPartido: 'Full time', noCode: 'No match code was provided.', noCodeHint: 'Open the link someone shared with you from Fuchitron.' },
+      de: { local: 'HEIM', visitante: 'GAST', enVivo: 'LIVE', porComenzar: 'NOCH NICHT BEGONNEN', finalizado: 'ENDE', timeline: 'Spielverlauf', sinEventos: 'Noch keine Ereignisse.', gol: 'Tor', finalPartido: 'Spielende', noCode: 'Kein Spielcode angegeben.', noCodeHint: 'Öffne den Link, den du von Fuchitron bekommen hast.' },
+      pt: { local: 'MANDANTE', visitante: 'VISITANTE', enVivo: 'AO VIVO', porComenzar: 'AINDA NÃO COMEÇOU', finalizado: 'FIM', timeline: 'Linha do tempo', sinEventos: 'Sem eventos.', gol: 'Golo', finalPartido: 'Fim de jogo', noCode: 'Nenhum código de jogo fornecido.', noCodeHint: 'Abre o link que te passaram do Fuchitron.' },
+      fr: { local: 'DOMICILE', visitante: 'EXTÉRIEUR', enVivo: 'EN DIRECT', porComenzar: 'PAS ENCORE COMMENCÉ', finalizado: 'FIN', timeline: 'Chronologie', sinEventos: 'Aucun événement.', gol: 'But', finalPartido: 'Fin du match', noCode: 'Aucun code de match fourni.', noCodeHint: 'Ouvre le lien qu\'on t\'a partagé depuis Fuchitron.' },
+      it: { local: 'CASA', visitante: 'TRASFERTA', enVivo: 'IN DIRETTA', porComenzar: 'NON INIZIATA', finalizado: 'FINE', timeline: 'Cronologia', sinEventos: 'Nessun evento.', gol: 'Goal', finalPartido: 'Fine partita', noCode: 'Nessun codice partita fornito.', noCodeHint: 'Apri il link che ti hanno condiviso da Fuchitron.' },
+      zh: { local: '主队', visitante: '客队', enVivo: '直播中', porComenzar: '未开始', finalizado: '终场', timeline: '时间线', sinEventos: '暂无事件', gol: '进球', finalPartido: '比赛结束', noCode: '未提供比赛代码。', noCodeHint: '请打开从 Fuchitron 分享的链接。' },
+    };
+    const urlLang = new URLSearchParams(location.search).get('lang');
+    const SPECTATE_LANG = (urlLang && SPECTATE_I18N[urlLang]) ? urlLang : 'es';
+    function t(key) {
+      return (SPECTATE_I18N[SPECTATE_LANG] && SPECTATE_I18N[SPECTATE_LANG][key]) || SPECTATE_I18N.es[key] || key;
+    }
 
     function getMatchCode() {
       const params = new URLSearchParams(window.location.search);
@@ -72,11 +88,6 @@
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    function formatMinute(absSeconds) {
-      const m = Math.floor(absSeconds / 60);
-      return `${m}'`;
-    }
-
     async function fetchMatch(code) {
       const url = `${SUPABASE_URL}/rest/v1/matches?match_code=eq.${encodeURIComponent(code)}`;
       const r = await fetch(url, {
@@ -85,23 +96,72 @@
       return r.json();
     }
 
+    function renderGoals(m, periodMinutes) {
+      const list = document.getElementById('goalsList');
+      list.innerHTML = '';
+      const goals = Array.isArray(m.goals) ? m.goals : [];
+      const base = m.current_half === 1 ? 0 : periodMinutes;
+      const items = goals
+        .map(g => ({
+          minuteAbs: base + (g.minute || 0),
+          side: g.side,
+          team: g.side === 'A' ? (m.team_a || t('local')) : (m.team_b || t('visitante')),
+        }))
+        .sort((a, b) => a.minuteAbs - b.minuteAbs);
+      if (!items.length) {
+        const li = document.createElement('li');
+        li.className = 'spectate-empty';
+        li.textContent = t('sinEventos');
+        list.appendChild(li);
+        return;
+      }
+      items.forEach(it => {
+        const li = document.createElement('li');
+        const minute = document.createElement('span');
+        minute.className = 'event-minute';
+        minute.textContent = `${it.minuteAbs}'`;
+        const text = document.createElement('span');
+        text.className = 'goal-meta';
+        text.textContent = `⚽ ${(it.team || '').toUpperCase()}`;
+        li.appendChild(minute);
+        li.appendChild(text);
+        list.appendChild(li);
+      });
+    }
+
     function renderMatch(m) {
       document.getElementById('noCode').hidden = true;
       document.getElementById('liveBlock').hidden = false;
       document.getElementById('scoreboard').hidden = false;
       document.getElementById('timelineSection').hidden = false;
 
-      const ta = m.team_a || 'LOCAL';
-      const tb = m.team_b || 'VISITANTE';
+      const ta = m.team_a || t('local');
+      const tb = m.team_b || t('visitante');
       document.getElementById('labelA').textContent = ta;
       document.getElementById('labelB').textContent = tb;
+      document.getElementById('tagA').textContent = t('local');
+      document.getElementById('tagB').textContent = t('visitante');
       document.getElementById('scoreA').textContent = m.score_a || 0;
       document.getElementById('scoreB').textContent = m.score_b || 0;
+      document.getElementById('livePillText').textContent = m.running && !m.finished ? t('enVivo') : (m.finished ? t('finalizado') : t('porComenzar'));
+      document.getElementById('timelineTitle').textContent = t('timeline');
 
       const matchStarted = !!m.match_start_ts || m.half_seconds > 0 || m.running || m.finished;
       const half = m.current_half || 1;
       const periodLabel = document.getElementById('periodLabel');
-      periodLabel.textContent = !matchStarted ? 'POR COMENZAR' : (half === 1 ? '1T' : (half === 2 ? '2T' : 'FIN'));
+      periodLabel.textContent = !matchStarted
+        ? t('porComenzar')
+        : (m.finished ? t('finalizado') : (half === 1 ? '1T' : '2T'));
+
+      // Compute live elapsed time from match_start_ts when running, so the
+      // spectator doesn't see a stale half_seconds value between polls.
+      let halfSeconds = m.half_seconds || 0;
+      if (m.running && m.match_start_ts && !m.finished) {
+        const startMs = Number(m.match_start_ts);
+        if (Number.isFinite(startMs) && startMs > 0) {
+          halfSeconds = Math.floor((Date.now() - startMs) / 1000);
+        }
+      }
 
       const clockEl = document.getElementById('clock');
       const overtimeEl = document.getElementById('overtime');
@@ -111,14 +171,21 @@
       } else {
         clockEl.hidden = false;
         overtimeEl.hidden = false;
-        clockEl.textContent = clockTxt(m.half_seconds || 0);
-        const target = 45 * 60;
-        const over = (m.half_seconds || 0) - target;
+        clockEl.textContent = clockTxt(halfSeconds);
+        const periodMinutes = m.period_minutes || 45;
+        const over = halfSeconds - periodMinutes * 60;
         overtimeEl.textContent = over > 0 ? `+${Math.floor((over - 1) / 60) + 1}` : '';
       }
 
       const dot = document.getElementById('liveDot');
       dot.style.display = (m.running && !m.finished) ? 'flex' : 'none';
+
+      renderGoals(m, m.period_minutes || 45);
+    }
+
+    function localizeNoCode() {
+      document.getElementById('noCodeText').textContent = t('noCode');
+      document.getElementById('noCodeHint').textContent = t('noCodeHint');
     }
 
     let pollInterval = null;
@@ -142,6 +209,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      localizeNoCode();
       const code = getMatchCode();
       if (!code) {
         document.getElementById('noCode').hidden = false;
