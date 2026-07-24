@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v9'; // Update on each deploy to bust old caches
+const CACHE_VERSION = 'v10'; // Update on each deploy to bust old caches
 const CACHE_NAME = `fuchitron-${CACHE_VERSION}`;
 const ASSETS = [
   './',
