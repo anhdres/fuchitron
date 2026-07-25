@@ -66,7 +66,7 @@ done <<< "$STAGED"
 yel "  [3/4] Asset variants / backups / tests (sólo extensiones de asset)"
 # Limitar a extensiones de imagen/asset: png, jpg, jpeg, gif, svg, webp, ico, pdf, mp4, mp3, wav
 ASSET_EXT='\.(png|jpe?g|gif|svg|webp|ico|bmp|tiff?|pdf|mp[34]|wav|ogg)$'
-VARIANT_NAME='(backup|test|new|old|final|temp|tmp|copy|og|rendered|rsng|t2|v[0-9]+)'
+VARIANT_NAME='(^|[_-])(backup|test|new|old|final|temp|tmp|copy|rendered|rsng|t2|v[0-9]+)([_-]|\.)'
 while IFS= read -r f; do
   base=$(basename "$f")
   if echo "$base" | grep -Eiq -- "$ASSET_EXT" && \
