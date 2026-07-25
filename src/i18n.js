@@ -81,6 +81,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Link para seguir en vivo',
+    liveLinkSection: 'Link en vivo',
+    copyLiveLink: 'Copiar link en vivo',
+    liveLinkDescription: 'Cualquiera con el link puede seguir el partido en vivo.',
     spectateShareText: 'Seguí este partido en vivo:',
     spectateToast: '¡Link copiado!',
     spectatePrompt: 'Compartí este link:',
@@ -165,6 +168,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Follow live link',
+    liveLinkSection: 'Live link',
+    copyLiveLink: 'Copy live link',
+    liveLinkDescription: 'Anyone with the link can follow match progress live.',
     spectateShareText: 'Follow this match live:',
     spectateToast: 'Link copied!',
     spectatePrompt: 'Share this link:',
@@ -246,6 +252,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: '直播链接',
+    liveLinkSection: '直播链接',
+    copyLiveLink: '复制直播链接',
+    liveLinkDescription: '任何人都可以通过链接实时跟踪比赛进度。',
     spectateShareText: '实时关注比赛:',
     spectateToast: '链接已复制！',
     spectatePrompt: '分享此链接：',
@@ -327,6 +336,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Live-Link',
+    liveLinkSection: 'Live-Link',
+    copyLiveLink: 'Live-Link kopieren',
+    liveLinkDescription: 'Jeder mit dem Link kann den Spielverlauf live verfolgen.',
     spectateShareText: 'Dieses Spiel live verfolgen:',
     spectateToast: 'Link kopiert!',
     spectatePrompt: 'Diesen Link teilen:',
@@ -409,6 +421,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Link para acompanhar ao vivo',
+    liveLinkSection: 'Link ao vivo',
+    copyLiveLink: 'Copiar link ao vivo',
+    liveLinkDescription: 'Qualquer pessoa com o link pode acompanhar o jogo ao vivo.',
     spectateShareText: 'Acompanha este jogo ao vivo:',
     spectateToast: 'Link copiado!',
     spectatePrompt: 'Compartilha este link:',
@@ -489,6 +504,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Lien pour suivre en direct',
+    liveLinkSection: 'Lien en direct',
+    copyLiveLink: 'Copier le lien en direct',
+    liveLinkDescription: 'Toute personne ayant le lien peut suivre le match en direct.',
     spectateShareText: 'Suivez ce match en direct :',
     spectateToast: 'Lien copié !',
     spectatePrompt: 'Partagez ce lien :',
@@ -571,6 +589,9 @@ const I18N = {
 
     // Spectate link
     spectateLink: 'Link per seguire in diretta',
+    liveLinkSection: 'Link live',
+    copyLiveLink: 'Copia link live',
+    liveLinkDescription: 'Chiunque abbia il link può seguire la partita in diretta.',
     spectateShareText: 'Segui questa partita in diretta:',
     spectateToast: 'Link copiato!',
     spectatePrompt: 'Condividi questo link:',
