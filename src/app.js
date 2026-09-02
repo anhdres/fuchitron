@@ -172,7 +172,7 @@ function renderGoals() {
       id: 'kickoff',
       kind: 'marker',
       minuteAbs: 0,
-      text: `⏱️ Inicio del partido`
+      text: `⏱️ ${t('inicioPartido')}`
     });
   }
 
@@ -478,6 +478,11 @@ function resetTimer() {
   state.firstHalfEndSeconds = null;
   state.matchEndSeconds = null;
   state.matchStartTS = null;
+  // Bug found 2026-09-02: stale spectate code from the previous match would
+  // route the share button back to the old match's URL instead of creating a
+  // fresh one for the new match.
+  state.spectateCode = null;
+  localStorage.removeItem('fuchitron_spectate_code');
 
   save();
   render();
@@ -511,12 +516,19 @@ function buildShareText(stylized = true) {
   const SEP = '---';
   const local = state.teamA || 'LOCAL';
   const away = state.teamB || 'AWAY';
+  // Score must always derive from goals[] — state.scoreA/B are deprecated
+  // (never updated mid-match, only zeroed on reset). Bug found 2026-09-02:
+  // share text would always show 0-0 even after goals were added.
+  const goalsA = (state.goals || []).filter(g => g.side === 'A');
+  const goalsB = (state.goals || []).filter(g => g.side === 'B');
+  const scoreA = goalsA.length;
+  const scoreB = goalsB.length;
   const lines = [];
 
   // Score line
   lines.push(stylized
-    ? `*${local}* \`${state.scoreA} - ${state.scoreB}\` *${away}*`
-    : `${local} ${state.scoreA} - ${state.scoreB} ${away}`);
+    ? `*${local}* \`${scoreA} - ${scoreB}\` *${away}*`
+    : `${local} ${scoreA} - ${scoreB} ${away}`);
 
   // Date (if enabled)
   if (state.includeDateText) {
@@ -527,8 +539,6 @@ function buildShareText(stylized = true) {
   // Goals + status — only if match was started
   if (state.matchStarted) {
     lines.push(SEP);
-    const goalsA = (state.goals || []).filter(g => g.side === 'A');
-    const goalsB = (state.goals || []).filter(g => g.side === 'B');
     const absGoalMinute = (g) => {
       if (g.minute === 0) return 0;
       const base = g.half === 1 ? 0 : state.periodMinutes;
