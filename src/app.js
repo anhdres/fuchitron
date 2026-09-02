@@ -792,7 +792,7 @@ function setupInstallPrompt() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   if (isIOS) {
     els.installHint.hidden = false;
-    els.installHint.textContent = 'iPhone: en Safari tocá Compartir → Agregar a pantalla de inicio.';
+    els.installHint.textContent = t('instalarIos');
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
