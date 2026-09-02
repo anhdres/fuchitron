@@ -950,34 +950,51 @@ els.createSpectateBtn?.addEventListener('click', async () => {
     return;
   }
 
-  const code = generateMatchCode();
-  const match = {
-    match_code: code,
-    team_a: state.teamA || t('local'),
-    team_b: state.teamB || t('visitante'),
-    score_a: (state.goals||[]).filter(g=>g.side==='A').length,
-    score_b: (state.goals||[]).filter(g=>g.side==='B').length,
-    current_half: state.currentHalf,
-    half_seconds: state.halfSeconds,
-    running: state.running,
-    finished: state.finished,
-    match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
-    period_minutes: state.periodMinutes,
-    language: state.lang,
-    goals: state.goals || [],
-  };
-  let r;
-  try {
-    r = await fetch(`${SUPABASE_URL}/rest/v1/matches`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-      body: JSON.stringify(match),
-    });
-  } catch (e) {
-    alert(t('spectateError'));
-    return;
+  // Retry loop: if the generated code already exists in the matches table
+  // (Supabase returns 409 Conflict via UNIQUE on match_code, or 400 if the
+  // table has no UNIQUE and we're racing with a duplicate), generate a new
+  // code and try again. Bounded at 3 attempts — beyond that the server is
+  // clearly broken and the user should know. Audit ref: AUDIT-2026-07-23 M7.
+  let code = null;
+  let r = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    code = generateMatchCode();
+    const match = {
+      match_code: code,
+      team_a: state.teamA || t('local'),
+      team_b: state.teamB || t('visitante'),
+      score_a: (state.goals||[]).filter(g=>g.side==='A').length,
+      score_b: (state.goals||[]).filter(g=>g.side==='B').length,
+      current_half: state.currentHalf,
+      half_seconds: state.halfSeconds,
+      running: state.running,
+      finished: state.finished,
+      match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
+      period_minutes: state.periodMinutes,
+      language: state.lang,
+      goals: state.goals || [],
+    };
+    try {
+      r = await fetch(`${SUPABASE_URL}/rest/v1/matches`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify(match),
+      });
+    } catch (e) {
+      alert(t('spectateError'));
+      return;
+    }
+    if (r.status === 409 || r.status === 400) {
+      // Collision or invalid body — try another code.
+      continue;
+    }
+    if (!r.ok) {
+      alert(t('spectateError'));
+      return;
+    }
+    break; // success
   }
-  if (!r.ok) {
+  if (!r || !r.ok) {
     alert(t('spectateError'));
     return;
   }
@@ -995,8 +1012,15 @@ els.createSpectateBtn?.addEventListener('click', async () => {
 
 function generateMatchCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  // crypto.getRandomValues() instead of Math.random() — the latter is not a
+  // CSPRNG and its output is reproducible from a small internal state, which
+  // means an attacker watching public matches could predict upcoming codes.
+  // See audit-2026-07-23.md M7. crypto.getRandomValues is supported in every
+  // browser Fuchitron runs in (all https + modern WebKit/Chromium/Gecko).
+  const buf = new Uint8Array(6);
+  crypto.getRandomValues(buf);
   let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 6; i++) code += chars[buf[i] % chars.length];
   return code;
 }
 
