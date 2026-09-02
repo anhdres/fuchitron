@@ -425,7 +425,12 @@ function toggleClock() {
   if (state.finished) return;
   state.running = !state.running;
   if (state.running) {
-    if (!state.matchStarted) { state.matchStarted = true; state.matchStartTS = Date.now(); }
+    if (!state.matchStarted) state.matchStarted = true;
+    // Anchor matchStartTS so getElapsedSeconds() returns halfSeconds on the next
+    // tick. Works for first start, resume after pause, and resume after period
+    // transition (where matchStartTS is null). Without this re-anchor, the
+    // pause duration would leak into the next resume (see bug fix 2026-09-02).
+    state.matchStartTS = Date.now() - (state.halfSeconds * 1000);
     tick = setInterval(() => {
       const elapsed = getElapsedSeconds();
       state.halfSeconds = elapsed;
@@ -435,6 +440,8 @@ function toggleClock() {
     }, 1000);
     requestWakeLock();
   } else {
+    // Capture elapsed at pause so render() and reload-recovery see the right value.
+    state.halfSeconds = getElapsedSeconds();
     clearInterval(tick);
     releaseWakeLock();
   }
@@ -485,7 +492,9 @@ function nextPeriod() {
     state.firstHalfEndSeconds = getElapsedSeconds();
     state.currentHalf = 2;
     state.halfSeconds = 0;
-    state.matchStartTS = Date.now();
+    // Reset matchStartTS so the next toggleClock() re-anchors it from scratch
+    // (otherwise the pause between halves would count as 2T time).
+    state.matchStartTS = null;
   } else if (!state.finished) {
     if (!window.confirm(t('confirmarTerminarPartido'))) return;
     state.matchEndSeconds = getElapsedSeconds();
