@@ -45,7 +45,8 @@ const els = {
   scoreA: $('scoreA'), scoreB: $('scoreB'),
   plusA: $('plusA'), plusB: $('plusB'),
   goalsList: $('goalsList'), timelineSection: $('timelineSection'),
-  periodMinutes: $('periodMinutes'), periodLabel: $('periodLabel'), livePill: $('livePill'),
+  periodLabel: $('periodLabel'), livePill: $('livePill'),
+  offlineBanner: $('offlineBanner'),
   durationGroup: $('durationGroup'), langGroup: $('langGroup'),
   clock: $('clock'), overtime: $('overtime'),
   startPause: $('startPause'), nextPeriod: $('nextPeriod'), resetTimer: $('resetTimer'),
@@ -91,6 +92,16 @@ const urlLang = new URLSearchParams(location.search).get('lang');
 const urlLangValid = urlLang && I18N[urlLang];
 const pad = n => String(n).padStart(2,'0');
 const clockTxt = s => `${pad(Math.floor(s/60))}:${pad(s%60)}`;
+// Locale-aware date for share text + share image. Chinese gets zh-CN
+// explicitly because navigator-style 'zh' falls back to a generic locale
+// that doesn't render 'long' month names correctly. Single source of truth
+// so adding a new locale only needs a switch here, not two grep targets.
+function formatDate() {
+  return new Date().toLocaleDateString(
+    state.lang === 'zh' ? 'zh-CN' : state.lang,
+    { day: 'numeric', month: 'long', year: 'numeric' }
+  );
+}
 
 function overtimeText() {
   const target = state.periodMinutes * 60;
@@ -532,7 +543,7 @@ function buildShareText(stylized = true) {
 
   // Date (if enabled)
   if (state.includeDateText) {
-    const dateStr = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-CN' : state.lang, { day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = formatDate();
     lines.push(stylized ? `_${dateStr}_` : dateStr);
   }
 
@@ -716,7 +727,7 @@ function buildCanvasToElement(c) {
 
   // ── Date — only if enabled in settings ──────────────────────
   if (state.includeDate) {
-    const dateStr = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-CN' : state.lang, { day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = formatDate();
     ctx.font = '600 44px "Space Grotesk"';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
@@ -1167,7 +1178,28 @@ updateUIStrings();
 
 render();
 setupInstallPrompt();
+setupOfflineBanner();
 registerSW();
+
+// Offline / online indicator. Surfaces the connection state because on the
+// field with no signal the user needs to know if the goal they just scored
+// is being kept. Goal data is always saved to localStorage immediately, so
+// offline is a degraded-but-functional mode — the banner says that. Audit
+// ref: AUDIT-2026-07-23.md m3.
+function setupOfflineBanner() {
+  if (!els.offlineBanner) return;
+  function setOffline() {
+    els.offlineBanner.textContent = t('offlineBanner');
+    els.offlineBanner.hidden = false;
+  }
+  function setOnline() {
+    els.offlineBanner.textContent = t('offlineAgain');
+    els.offlineBanner.hidden = true;
+  }
+  window.addEventListener('offline', setOffline);
+  window.addEventListener('online', setOnline);
+  if (!navigator.onLine) setOffline();
+}
 
 if (state.running) {
   // Recover from reload: recompute elapsed time from matchStartTS instead of

@@ -792,3 +792,21 @@ input {
 }
 input:checked + .slider { background: #39FF14; }
 input:checked + .slider::before { transform: translateX(22px); }
+
+/* Offline banner — shown when navigator.onLine === false. Persistent until
+   the connection comes back. Position: fixed, just below the topbar. */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #1c1c1c;
+  color: #39FF14;
+  text-align: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 2px solid #39FF14;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
