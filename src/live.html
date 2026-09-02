@@ -168,7 +168,13 @@
       if (m.running && m.match_start_ts && !m.finished) {
         const startMs = Number(m.match_start_ts);
         if (Number.isFinite(startMs) && startMs > 0) {
-          halfSeconds = Math.floor((Date.now() - startMs) / 1000);
+          const computed = Math.floor((Date.now() - startMs) / 1000);
+          // Don't let the clock go backwards relative to the last poll. After
+          // the timer fix (commit 41e5554, 2026-09-02) match_start_ts gets
+          // re-anchored on every resume, so a freshly-resumed match can have
+          // a computed elapsed that's lower than the last paused
+          // half_seconds seen by the spectator. Take whichever is higher.
+          halfSeconds = Math.max(halfSeconds, computed);
         }
       }
 
