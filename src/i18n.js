@@ -60,6 +60,7 @@ const I18N = {
     textoPlaceholder: 'Compartir resultado',
     copiarToast: '¡Copiado!',
     copiarError: 'Error al copiar',
+    copiarImagenError: 'Tu navegador no deja copiar imagen. Probá descargar.',
 
     // Confirm dialogs
     confirmarNuevoPartido: '¿Comenzar nuevo partido? Se van a borrar todos los goles y tiempos.',
@@ -151,6 +152,7 @@ const I18N = {
     textoPlaceholder: 'Share result',
     copiarToast: 'Copied!',
     copiarError: 'Error copying',
+    copiarImagenError: 'Your browser doesn\'t allow copying images. Try downloading instead.',
 
     confirmarNuevoPartido: 'Start new match? All goals and times will be cleared.',
     confirmarTerminar1T: 'End the first half? The clock will be paused.',
@@ -235,6 +237,7 @@ const I18N = {
     textoPlaceholder: '分享比分',
     copiarToast: '已复制！',
     copiarError: '复制失败',
+    copiarImagenError: '你的浏览器不支持复制图片。请尝试下载。',
 
     confirmarNuevoPartido: '开始新比赛？所有进球和时间将被清除。',
     confirmarTerminar1T: '结束第一节？计时器将暂停。',
@@ -319,6 +322,7 @@ const I18N = {
     textoPlaceholder: 'Ergebnis teilen',
     copiarToast: 'Kopiert!',
     copiarError: 'Fehler beim Kopieren',
+    copiarImagenError: 'Dein Browser unterstützt das Kopieren von Bildern nicht. Versuche es herunterzuladen.',
 
     confirmarNuevoPartido: 'Neues Spiel starten? Alle Tore und Zeiten werden gelöscht.',
     confirmarTerminar1T: 'Erste Halbzeit beenden? Die Uhr wird pausiert.',
@@ -403,6 +407,7 @@ const I18N = {
     textoPlaceholder: 'Compartilhar resultado',
     copiarToast: 'Copiado!',
     copiarError: 'Erro ao copiar',
+    copiarImagenError: 'O teu navegador não permite copiar imagens. Tenta descarregar.',
 
     confirmarNuevoPartido: 'Começar novo jogo? Todos os gols e tempos serão apagados.',
     confirmarTerminar1T: 'Encerrar o primeiro tempo? O cronômetro será pausado.',
@@ -487,6 +492,7 @@ const I18N = {
     textoPlaceholder: 'Partager le résultat',
     copiarToast: 'Copié !',
     copiarError: 'Erreur de copie',
+    copiarImagenError: 'Votre navigateur ne permet pas de copier des images. Essayez de télécharger.',
 
     confirmarNuevoPartido: 'Commencer un nouveau match? Tous les buts et temps seront effacés.',
     confirmarTerminar1T: 'Terminer la première mi-temps? Le chrono sera mis en pause.',
@@ -571,6 +577,7 @@ const I18N = {
     textoPlaceholder: 'Condividi risultato',
     copiarToast: 'Copiato!',
     copiarError: 'Errore copia',
+    copiarImagenError: 'Il tuo browser non permette di copiare immagini. Prova a scaricare.',
 
     confirmarNuevoPartido: 'Iniziare nuova partita? Tutti i gol e i tempi saranno cancellati.',
     confirmarTerminar1T: 'Terminare il primo tempo? Il cronometro sarà messo in pausa.',

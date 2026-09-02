@@ -575,12 +575,6 @@ function buildShareText(stylized = true) {
   return lines.join('\n');
 }
 
-async function shareWhatsApp() {
-  const text = buildShareText(state.stylizedText);
-  if (navigator.share) { try { await navigator.share({ text }); return; } catch {} }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
 async function copyText() { try { await navigator.clipboard.writeText(buildShareText(state.stylizedText)); alert(t('copiarToast')); } catch { alert(t('copiarError')); } }
 
 // Shared offscreen canvas for share image rendering
@@ -784,9 +778,9 @@ async function copyImage() {
   const c = getShareCanvas();
   buildCanvasToElement(c);
   c.toBlob(async blob => {
-    if (!blob) return alert('No pude generar imagen 😅');
-    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); alert('Imagen copiada ✅'); }
-    catch { alert('Tu navegador no deja copiar imagen. Usá Descargar 🙌'); }
+    if (!blob) return alert(t('copiarError'));
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); alert(t('copiarToast')); }
+    catch { alert(t('copiarImagenError')); }
   }, 'image/png');
 }
 

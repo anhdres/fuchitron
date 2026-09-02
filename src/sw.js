@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v10'; // Update on each deploy to bust old caches
+const CACHE_VERSION = 'v11'; // Update on each deploy to bust old caches
 const CACHE_NAME = `fuchitron-${CACHE_VERSION}`;
 const ASSETS = [
   './',
@@ -39,16 +39,18 @@ self.addEventListener('fetch', (event) => {
 
   const isNavigation = req.mode === 'navigate' || req.destination === 'document';
 
-  // HTML siempre intenta red primero para traer updates
+  // HTML siempre intenta red primero para traer updates.
+  // Cacheamos en la URL real del request para que index.html / live.html /
+  // spectate.html (y sus rewrites /live/:code, /s/:code) no se pisen entre sí.
   if (isNavigation) {
     event.respondWith(
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
           return res;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
     );
     return;
   }
