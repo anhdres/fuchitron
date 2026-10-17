@@ -1,6 +1,35 @@
 {
-  "rewrites": [
-    { "source": "/s/:code", "destination": "/spectate.html" },
-    { "source": "/live/:code", "destination": "/live.html" }
+  "redirects": [
+    {
+      "source": "/live/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/s/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/live.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/spectate.html",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
   ]
 }

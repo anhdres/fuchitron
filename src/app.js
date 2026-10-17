@@ -11,8 +11,6 @@ const state = {
   teamB: '',
   colorA1: '#C8102E',
   colorB1: '#0033A0',
-  scoreA: 0,
-  scoreB: 0,
   goals: [],
   periodMinutes: 45,
   currentHalf: 1,
@@ -28,13 +26,9 @@ const state = {
   includeDateText: true,
   stylizedText: true,
   keepScreenOn: false,
-  wakeLock: null,
-  spectateCode: null,
+  halfStarted: false,
+  matchDateTS: null,
 };
-
-// Supabase for spectator links
-const SUPABASE_URL = 'https://jorehxhrnpggvsgdnrpk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_grJRaqShOSYw5H2fBdEyAA_84EUY-tB';
 
 const $ = id => document.getElementById(id);
 const els = {
@@ -50,11 +44,10 @@ const els = {
   durationGroup: $('durationGroup'), langGroup: $('langGroup'),
   clock: $('clock'), overtime: $('overtime'),
   startPause: $('startPause'), nextPeriod: $('nextPeriod'), resetTimer: $('resetTimer'),
-  shareText: $('shareText'), copyText: $('copyText'), copyImage: $('copyImage'), downloadImage: $('downloadImage'),
   shareBtn: $('shareBtn'), shareDialog: $('shareDialog'), closeShare: $('closeShare'),
   fullscreenBtn: $('fullscreenBtn'),
   shareCanvas: $('shareCanvas'), shareTextPreview: $('shareTextPreview'),
-  shareImageBtn: $('shareImageBtn'), shareTextBtn: $('shareTextBtn'), createSpectateBtn: $('createSpectateBtn'),
+  shareImageBtn: $('shareImageBtn'), shareTextBtn: $('shareTextBtn'),
   copyImageBtn: $('copyImageBtn'), copyTextBtn: $('copyTextBtn'),
   downloadImageBtn: $('downloadImageBtn'), downloadTxtBtn: $('downloadTxtBtn'),
   settingsBtn: $('settingsBtn'),
@@ -78,18 +71,74 @@ let tick = null;
 const logoImg = new Image();
 logoImg.src = '/icons/logo.svg';
 
+const DEFAULT_STATE = structuredClone(state);
+let storageFailed = false;
 const save = () => {
-  if (state.spectateCode) localStorage.setItem('fuchitron_spectate_code', state.spectateCode);
-  localStorage.setItem('fuchitron_v4', JSON.stringify(state));
+  try {
+    localStorage.setItem('fuchitron_v4', JSON.stringify(state));
+    storageFailed = false;
+  } catch (error) {
+    storageFailed = true;
+    console.warn('Fuchitron: unable to save this match.', error);
+  }
+  updateStorageNotice();
 };
 const load = () => {
-  try { Object.assign(state, JSON.parse(localStorage.getItem('fuchitron_v4') || '{}')); } catch (e) { console.warn('Fuchitron: no pude cargar datos guardados.', e); }
-  state.spectateCode = localStorage.getItem('fuchitron_spectate_code') || null;
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem('fuchitron_v4') || '{}'); }
+  catch { storageFailed = true; }
+  Object.assign(state, structuredClone(DEFAULT_STATE));
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
+  for (const key of ['teamA', 'teamB']) {
+    if (typeof saved[key] === 'string') state[key] = saved[key].slice(0, 15);
+  }
+  for (const key of ['colorA1', 'colorB1']) {
+    if (typeof saved[key] === 'string' && /^#[0-9a-f]{6}$/i.test(saved[key])) state[key] = saved[key];
+  }
+  for (const key of ['running', 'finished', 'matchStarted', 'includeDate', 'includeDateText', 'stylizedText', 'keepScreenOn']) {
+    if (typeof saved[key] === 'boolean') state[key] = saved[key];
+  }
+  for (const key of ['halfSeconds', 'firstHalfEndSeconds', 'matchEndSeconds']) {
+    if (Number.isSafeInteger(saved[key]) && saved[key] >= 0 && saved[key] <= 604800) state[key] = saved[key];
+  }
+  for (const key of ['matchStartTS', 'matchDateTS']) {
+    if (Number.isSafeInteger(saved[key]) && saved[key] > 0 && saved[key] <= Date.now()) state[key] = saved[key];
+  }
+  if ([10, 15, 30, 45].includes(saved.periodMinutes)) state.periodMinutes = saved.periodMinutes;
+  if (saved.currentHalf === 2) state.currentHalf = 2;
+  if (Object.hasOwn(I18N, saved.lang)) state.lang = saved.lang;
+  const ids = new Set();
+  if (Array.isArray(saved.goals)) state.goals = saved.goals.filter(g => {
+    if (!g || !['A', 'B'].includes(g.side) || ![1, 2].includes(g.half) ||
+        !Number.isSafeInteger(g.minute) || g.minute < 0) return false;
+    return true;
+  }).map(g => {
+    let id = typeof g.id === 'string' ? g.id : crypto.randomUUID();
+    if (ids.has(id)) id = crypto.randomUUID();
+    ids.add(id);
+    return { id, side: g.side, half: g.half, minute: g.minute,
+      absSeconds: Number.isSafeInteger(g.absSeconds) && g.absSeconds >= 0 ? g.absSeconds : Math.max(0, (g.minute - 1) * 60) };
+  });
+  state.halfStarted = typeof saved.halfStarted === 'boolean' ? saved.halfStarted :
+    state.matchStarted && (state.currentHalf === 1 || state.halfSeconds > 0 || state.running || state.finished);
+  if (state.finished) { state.running = false; state.currentHalf = 2; state.matchEndSeconds ??= state.halfSeconds; }
+  if (state.currentHalf === 2) { state.matchStarted = true; state.firstHalfEndSeconds ??= state.periodMinutes * 60; }
+  if (!state.matchDateTS && state.matchStartTS) state.matchDateTS = state.matchStartTS;
+  if (state.running) { state.matchStarted = true; state.halfStarted = true; }
+  if (!state.running) state.matchStartTS = null;
+  else if (!state.matchStartTS) state.matchStartTS = Date.now() - state.halfSeconds * 1000;
 };
+
+function updateStorageNotice() {
+  const banner = $('storageBanner');
+  banner.hidden = !storageFailed;
+  banner.textContent = t('storageError');
+  if (els.offlineBanner) els.offlineBanner.hidden = navigator.onLine || storageFailed;
+}
 
 // Preserve lang if set from URL before load() overwrites it
 const urlLang = new URLSearchParams(location.search).get('lang');
-const urlLangValid = urlLang && I18N[urlLang];
+const urlLangValid = urlLang && Object.hasOwn(I18N, urlLang);
 const pad = n => String(n).padStart(2,'0');
 const clockTxt = s => `${pad(Math.floor(s/60))}:${pad(s%60)}`;
 // Locale-aware date for share text + share image. Chinese gets zh-CN
@@ -97,7 +146,7 @@ const clockTxt = s => `${pad(Math.floor(s/60))}:${pad(s%60)}`;
 // that doesn't render 'long' month names correctly. Single source of truth
 // so adding a new locale only needs a switch here, not two grep targets.
 function formatDate() {
-  return new Date().toLocaleDateString(
+  return new Date(state.matchDateTS || Date.now()).toLocaleDateString(
     state.lang === 'zh' ? 'zh-CN' : state.lang,
     { day: 'numeric', month: 'long', year: 'numeric' }
   );
@@ -107,7 +156,7 @@ function overtimeText() {
   const target = state.periodMinutes * 60;
   const over = state.halfSeconds - target;
   if (over <= 0) return '';
-  return `+${Math.floor((over - 1) / 60) + 1}`;
+  return `+${Math.ceil(over / 60)}`;
 }
 
 function hexToRgb(hex) {
@@ -125,16 +174,21 @@ function isLight(hex) {
   return yiq >= 150;
 }
 
+function readableTeamColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const channels = [r, g, b].map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return luminance < 0.18 ? '#ffffff' : hex;
+}
+
 function applyTeamColors() {
   document.documentElement.style.setProperty('--a1', state.colorA1);
   document.documentElement.style.setProperty('--b1', state.colorB1);
 
   els.chipA.style.borderColor = state.colorA1;
   els.chipB.style.borderColor = state.colorB1;
-  const tagARgb = hexToRgb(state.colorA1);
-  const tagBRgb = hexToRgb(state.colorB1);
-  els.tagA.style.color = `rgba(${tagARgb.r}, ${tagARgb.g}, ${tagARgb.b}, 0.9)`;
-  els.tagB.style.color = `rgba(${tagBRgb.r}, ${tagBRgb.g}, ${tagBRgb.b}, 0.9)`;
+  els.tagA.style.color = readableTeamColor(state.colorA1);
+  els.tagB.style.color = readableTeamColor(state.colorB1);
 
   // Gradiente con color principal en botones
   const aRgb = hexToRgb(state.colorA1);
@@ -154,118 +208,76 @@ function renderPalette(container, key) {
   COLORS.forEach(color => {
     const b = document.createElement('button');
     b.className = 'swatch';
+    b.type = 'button';
+    b.setAttribute('aria-label', color);
+    b.setAttribute('aria-pressed', String(state[key] === color));
     b.style.background = color;
     if (state[key] === color) b.classList.add('active');
-    b.addEventListener('click', () => { state[key] = color; save(); render(); });
+    b.addEventListener('click', () => { state[key] = color; save(); render(); container.querySelectorAll('button')[COLORS.indexOf(color)].focus(); });
     container.appendChild(b);
   });
 }
 
-function formatEndMinute(absSeconds, periodMinutes) {
-  const target = periodMinutes * 60;
-  const actual = Math.floor(absSeconds / 60);
-  const over = actual - periodMinutes;
-  if (over === 0) return `${periodMinutes}'`;
-  if (over > 0) return `${periodMinutes}'+${over}'`;
-  return `${periodMinutes}'-${periodMinutes - actual}'`;
+function teamName(side) {
+  return side === 'A' ? state.teamA || t('local') : state.teamB || t('visitante');
+}
+
+function formatEndMinute(seconds, half = 1) {
+  const actual = Math.ceil(seconds / 60);
+  const base = (half - 1) * state.periodMinutes;
+  return actual > state.periodMinutes
+    ? `${base + state.periodMinutes}+${actual - state.periodMinutes}'`
+    : `${base + actual}'`;
+}
+
+function formatGoalMinute(goal) {
+  if (!goal.minute) return '–';
+  const base = (goal.half - 1) * state.periodMinutes;
+  return goal.minute > state.periodMinutes
+    ? `${base + state.periodMinutes}+${goal.minute - state.periodMinutes}'`
+    : `${base + goal.minute}'`;
 }
 
 function renderGoals() {
-  if (!els.goalsList) return;
-
-  els.goalsList.innerHTML = '';
-
-  const events = [];
-
-  // Kickoff: show once Iniciar 1T has been pressed (persists through 2T and after match ends)
-  if (state.matchStarted) {
-    events.push({
-      id: 'kickoff',
-      kind: 'marker',
-      minuteAbs: 0,
-      text: `⏱️ ${t('inicioPartido')}`
-    });
-  }
-
-  // Half-time marker: show once 1T has ended
-  if (state.firstHalfEndSeconds !== null) {
-    const halfEndMinute = Math.floor(state.firstHalfEndSeconds / 60);
-    const label = formatEndMinute(state.firstHalfEndSeconds, state.periodMinutes);
-    events.push({
-      id: 'half',
-      kind: 'marker',
-      minuteAbs: halfEndMinute,
-      text: `⏱️ ${t('final1T')} (${label})`
-    });
-  }
-
-  // Final marker: show when match is over
-  if (state.finished && state.matchEndSeconds !== null) {
-    const actualFirstHalfMinutes = state.firstHalfEndSeconds !== null
-      ? Math.floor(state.firstHalfEndSeconds / 60)
-      : state.periodMinutes;
-    const matchEndMinute = actualFirstHalfMinutes + Math.floor(state.matchEndSeconds / 60);
-    const label = formatEndMinute(state.matchEndSeconds, state.periodMinutes);
-    events.push({
-      id: 'full',
-      kind: 'marker',
-      minuteAbs: matchEndMinute,
-      text: `⏱️ ${t('final2T')} (${label})`
-    });
-  }
-
-  (state.goals || []).forEach((g) => {
-    const actualFirstHalfMinutes = state.firstHalfEndSeconds !== null
-      ? Math.floor(state.firstHalfEndSeconds / 60)
-      : state.periodMinutes;
-    const minuteAbs = g.half === 1 ? g.minute : actualFirstHalfMinutes + g.minute;
-    events.push({
-      id: g.id,
-      kind: 'goal',
-      minuteAbs,
-      text: `⚽ ${g.team.toUpperCase()}`
-    });
-  });
-
-  events.sort((a, b) => a.minuteAbs - b.minuteAbs);
-
-  if (!events.length) {
+  els.goalsList.replaceChildren();
+  const append = (minute, text, goal) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="goal-meta">${t('sinEventos')}</span>`;
-    els.goalsList.appendChild(li);
-    return;
-  }
-
-  events.forEach((item) => {
-    const li = document.createElement('li');
-
-    const minuteLabel = item.kind === 'goal'
-      ? (item.minuteAbs === 0 ? '-' : `${item.minuteAbs}'`)
-      : `${item.minuteAbs}'`;
-
-    if (item.kind === 'marker') {
-      li.innerHTML = `
-        <span class="event-minute">${minuteLabel}</span>
-        <span class="goal-meta">${item.text}</span>
-      `;
-      li.classList.add('timeline-marker');
-    } else {
-      li.innerHTML = `
-        <span class="event-minute">${minuteLabel}</span>
-        <span class="goal-meta">${item.text}</span>
-        <button class="ghost delete-goal" data-id="${item.id}" aria-label="${t('borrar')}">${t('borrar')}</button>
-      `;
+    const time = document.createElement('span');
+    time.className = 'event-minute';
+    time.textContent = minute;
+    const label = document.createElement('span');
+    label.className = 'goal-meta';
+    label.textContent = text;
+    li.append(time, label);
+    if (goal) {
+      const button = document.createElement('button');
+      button.className = 'ghost delete-goal';
+      button.textContent = t('borrar');
+      button.setAttribute('aria-label', `${t('borrar')}: ${teamName(goal.side)} ${minute}`);
+      button.addEventListener('click', () => deleteGoalById(goal.id));
+      li.append(button);
+    } else li.classList.add('timeline-marker');
+    els.goalsList.append(li);
+  };
+  if (state.matchStarted) append("0'", `⏱️ ${t('inicioPartido')}`);
+  // Keep period boundaries chronological, even when a half ends early or in added time.
+  for (const half of [1, 2]) {
+    state.goals.filter(g => g.half === half)
+      .sort((a, b) => a.absSeconds - b.absSeconds)
+      .forEach(g => append(formatGoalMinute(g), `⚽ ${teamName(g.side).toUpperCase()}`, g));
+    if (half === 1 && state.firstHalfEndSeconds !== null) {
+      append(formatEndMinute(state.firstHalfEndSeconds, 1), `⏱️ ${t('final1T')}`);
     }
-
-    els.goalsList.appendChild(li);
-  });
-
-  document.querySelectorAll('.delete-goal').forEach(btn => btn.addEventListener('click', () => deleteGoalById(btn.dataset.id)));
+    if (half === 2 && state.finished && state.matchEndSeconds !== null) {
+      append(formatEndMinute(state.matchEndSeconds, 2), `⏱️ ${t('final2T')}`);
+    }
+  }
+  if (!els.goalsList.children.length) append('', t('sinEventos'));
 }
 
 function render() {
-  els.teamA.value = state.teamA;
-  els.teamB.value = state.teamB;
+  if (els.teamA.value !== state.teamA) els.teamA.value = state.teamA;
+  if (els.teamB.value !== state.teamB) els.teamB.value = state.teamB;
   els.labelA.textContent = state.teamA ? state.teamA.toUpperCase() : '';
   els.labelB.textContent = state.teamB ? state.teamB.toUpperCase() : '';
   // Always derive scores from goals array to prevent sync drift
@@ -294,11 +306,14 @@ function render() {
     pLabel.textContent = t('finalizado');
   } else {
     pIcon.textContent = 'timer_play';
-    pLabel.textContent = state.halfSeconds ? t('reanudar') : (state.currentHalf === 1 ? t('iniciar1T') : t('iniciar2T'));
+    pLabel.textContent = state.halfStarted ? t('reanudar') : (state.currentHalf === 1 ? t('iniciar1T') : t('iniciar2T'));
   }
   els.startPause.classList.toggle('running', state.running);
 
-  els.livePill.hidden = !state.running;
+  els.startPause.disabled = state.finished;
+  els.nextPeriod.disabled = state.finished || !state.halfStarted;
+  els.keepScreenOn.checked = state.keepScreenOn;
+  els.livePill.hidden = !state.matchStarted || state.finished;
   els.livePill.classList.toggle('running', state.running);
   if (els.livePill.lastChild) els.livePill.lastChild.textContent = t('enVivo');
   els.timelineSection.hidden = !state.matchStarted && state.goals.length === 0;
@@ -310,20 +325,20 @@ function render() {
 }
 
 function getElapsedSeconds() {
-  if (!state.matchStartTS) return state.halfSeconds;
-  return Math.floor((Date.now() - state.matchStartTS) / 1000);
+  if (!state.running || !state.matchStartTS) return state.halfSeconds;
+  return Math.max(0, Math.floor((Date.now() - state.matchStartTS) / 1000));
 }
 
 function goalMinute() {
   if (!state.matchStarted) return 0;
-  return Math.max(1, Math.floor(getElapsedSeconds() / 60));
+  return Math.max(1, Math.ceil(getElapsedSeconds() / 60));
 }
 
 let goalFxTimeout = null;
 function triggerGoalFx(side) {
   const target = side === 'A' ? els.scoreA : els.scoreB;
   document.body.classList.remove('goal-flash-a', 'goal-flash-b');
-  target.classList.remove('goal-burst', 'score-pop');
+  for (const score of [els.scoreA, els.scoreB]) score.classList.remove('goal-burst', 'score-pop');
   els.goalBanner.classList.remove('show');
   void target.offsetWidth;
 
@@ -338,19 +353,20 @@ function triggerGoalFx(side) {
   if (goalFxTimeout) clearTimeout(goalFxTimeout);
   goalFxTimeout = setTimeout(() => {
     document.body.classList.remove('goal-flash-a', 'goal-flash-b');
-    target.classList.remove('goal-burst', 'score-pop');
+    for (const score of [els.scoreA, els.scoreB]) score.classList.remove('goal-burst', 'score-pop');
     els.goalBanner.classList.remove('show');
     goalFxTimeout = null;
   }, 800);
 }
 
 function addGoal(side) {
-  const g = { id: crypto.randomUUID(), side, team: side === 'A' ? state.teamA || t('local') : state.teamB || t('visitante'), minute: goalMinute(), half: state.currentHalf, absSeconds: state.halfSeconds };
+  if (!['A', 'B'].includes(side)) return;
+  state.matchDateTS ||= Date.now();
+  const g = { id: crypto.randomUUID(), side, minute: goalMinute(), half: state.currentHalf, absSeconds: getElapsedSeconds() };
   state.goals.push(g);
   save();
   render();
   triggerGoalFx(side);
-  if (state.spectateCode) updateSpectateMatch(state.spectateCode);
 }
 
 function deleteGoalById(id) {
@@ -384,20 +400,14 @@ function showUndoSnackbar(text, onUndo) {
     clearTimeout(snackbarTimeout);
     snackbarTimeout = null;
   }
-  if (snackbarAction) {
-    snackbarAction = null;
-    actionEl.replaceWith(actionEl.cloneNode(true));
-  }
-
   textEl.textContent = text;
   actionEl.textContent = t('deshacer');
-
-  const fresh = $('snackbarAction');
   snackbarAction = onUndo;
-  fresh.addEventListener('click', () => {
-    if (snackbarAction) snackbarAction();
+  actionEl.onclick = () => {
+    const action = snackbarAction;
     dismissSnackbar();
-  });
+    if (action) action();
+  };
 
   el.hidden = false;
   snackbarTimeout = setTimeout(() => dismissSnackbar(), 5000);
@@ -412,61 +422,63 @@ function dismissSnackbar() {
   snackbarAction = null;
 }
 
-// Screen Wake Lock — keep display on during match
+// Runtime handles are never serialized with match data.
+let wakeLock = null;
+let wakeLockRequest = 0;
 async function requestWakeLock() {
-  if (!state.keepScreenOn || !('wakeLock' in navigator)) return;
+  if (!state.running || !state.keepScreenOn || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  if (wakeLock && !wakeLock.released) return;
+  const request = ++wakeLockRequest;
   try {
-    state.wakeLock = await navigator.wakeLock.request('screen');
-  } catch (e) { state.wakeLock = null; }
+    const lock = await navigator.wakeLock.request('screen');
+    if (request !== wakeLockRequest || !state.running || !state.keepScreenOn) {
+      await lock.release();
+      return;
+    }
+    wakeLock = lock;
+    lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+  } catch { /* Wake lock is optional, for example in battery-saver mode. */ }
 }
 async function releaseWakeLock() {
-  if (state.wakeLock) {
-    await state.wakeLock.release();
-    state.wakeLock = null;
-  }
+  wakeLockRequest++;
+  const lock = wakeLock;
+  wakeLock = null;
+  try { await lock?.release(); } catch { /* Already released by the browser. */ }
 }
-// Re-acquire wake lock when tab becomes visible again
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && state.running && state.keepScreenOn) {
-    await requestWakeLock();
-  }
-});
-
+function updateClock() {
+  state.halfSeconds = getElapsedSeconds();
+  els.clock.textContent = clockTxt(state.halfSeconds);
+  els.overtime.textContent = overtimeText();
+}
+function startTicker() {
+  clearInterval(tick);
+  updateClock();
+  tick = setInterval(updateClock, 250);
+  requestWakeLock();
+}
 function toggleClock() {
   if (state.finished) return;
-  state.running = !state.running;
   if (state.running) {
-    if (!state.matchStarted) state.matchStarted = true;
-    // Anchor matchStartTS so getElapsedSeconds() returns halfSeconds on the next
-    // tick. Works for first start, resume after pause, and resume after period
-    // transition (where matchStartTS is null). Without this re-anchor, the
-    // pause duration would leak into the next resume (see bug fix 2026-09-02).
-    state.matchStartTS = Date.now() - (state.halfSeconds * 1000);
-    tick = setInterval(() => {
-      const elapsed = getElapsedSeconds();
-      state.halfSeconds = elapsed;
-      els.clock.textContent = clockTxt(elapsed);
-      els.overtime.textContent = overtimeText();
-      save();
-    }, 1000);
-    requestWakeLock();
-  } else {
-    // Capture elapsed at pause so render() and reload-recovery see the right value.
     state.halfSeconds = getElapsedSeconds();
+    state.running = false;
+    state.matchStartTS = null;
     clearInterval(tick);
     releaseWakeLock();
+  } else {
+    state.matchStarted = true;
+    state.halfStarted = true;
+    state.matchDateTS ||= Date.now();
+    state.matchStartTS = Date.now() - state.halfSeconds * 1000;
+    state.running = true;
+    startTicker();
   }
   save(); render();
-  if (state.spectateCode) updateSpectateMatch(state.spectateCode);
 }
 
-// Page Visibility API — recalculate time when tab comes back
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && state.running) {
-    const elapsed = getElapsedSeconds();
-    state.halfSeconds = elapsed;
-    els.clock.textContent = clockTxt(elapsed);
-    els.overtime.textContent = overtimeText();
+    updateClock();
+    requestWakeLock();
   }
 });
 
@@ -481,52 +493,44 @@ function resetTimer() {
   // Reinicia partido (tiempo + goles), conserva customización de equipos.
   state.halfSeconds = 0;
   state.currentHalf = 1;
-  state.scoreA = 0;
-  state.scoreB = 0;
   state.goals = [];
   state.finished = false;
   state.matchStarted = false;
   state.firstHalfEndSeconds = null;
   state.matchEndSeconds = null;
   state.matchStartTS = null;
-  // Bug found 2026-09-02: stale spectate code from the previous match would
-  // route the share button back to the old match's URL instead of creating a
-  // fresh one for the new match.
-  state.spectateCode = null;
-  localStorage.removeItem('fuchitron_spectate_code');
+  state.halfStarted = false;
+  state.matchDateTS = null;
+  dismissSnackbar();
 
   save();
   render();
 }
 function nextPeriod() {
+  if (state.finished || !state.halfStarted) return;
+  if (!window.confirm(t(state.currentHalf === 1 ? 'confirmarTerminar1T' : 'confirmarTerminarPartido'))) return;
+  const elapsed = getElapsedSeconds();
   state.running = false;
+  state.matchStartTS = null;
   clearInterval(tick);
   releaseWakeLock();
-
   if (state.currentHalf === 1) {
-    if (!window.confirm(t('confirmarTerminar1T'))) return;
-    state.firstHalfEndSeconds = getElapsedSeconds();
+    state.firstHalfEndSeconds = elapsed;
     state.currentHalf = 2;
     state.halfSeconds = 0;
-    // Reset matchStartTS so the next toggleClock() re-anchors it from scratch
-    // (otherwise the pause between halves would count as 2T time).
-    state.matchStartTS = null;
-  } else if (!state.finished) {
-    if (!window.confirm(t('confirmarTerminarPartido'))) return;
-    state.matchEndSeconds = getElapsedSeconds();
+    state.halfStarted = false;
+  } else {
+    state.matchEndSeconds = elapsed;
+    state.halfSeconds = elapsed;
     state.finished = true;
-    releaseWakeLock();
   }
-
-  save();
-  render();
-  if (state.spectateCode) updateSpectateMatch(state.spectateCode);
+  save(); render();
 }
 
 function buildShareText(stylized = true) {
   const SEP = '---';
-  const local = state.teamA || 'LOCAL';
-  const away = state.teamB || 'AWAY';
+  const local = teamName('A');
+  const away = teamName('B');
   // Score must always derive from goals[] — state.scoreA/B are deprecated
   // (never updated mid-match, only zeroed on reset). Bug found 2026-09-02:
   // share text would always show 0-0 even after goals were added.
@@ -550,34 +554,13 @@ function buildShareText(stylized = true) {
   // Goals + status — only if match was started
   if (state.matchStarted) {
     lines.push(SEP);
-    const absGoalMinute = (g) => {
-      if (g.minute === 0) return 0;
-      const base = g.half === 1 ? 0 : state.periodMinutes;
-      return base + g.minute;
-    };
-    if (goalsA.length) lines.push(`⚽ ${local}  (${goalsA.map(g => `${absGoalMinute(g)}'`).join(', ')})`);
-    if (goalsB.length) lines.push(`⚽ ${away}  (${goalsB.map(g => `${absGoalMinute(g)}'`).join(', ')})`);
-
-    // Status — with overtime notation (e.g. 10+1' or 4' if under)
-    const overtimeSym = (absSeconds, periodMinutes) => {
-      const actual = Math.floor(absSeconds / 60);
-      const over = actual - periodMinutes;
-      if (over > 0) return ` ⚡${over}'`;
-      if (over < 0) return ` (${actual}' - ${periodMinutes}')`;
-      return '';
-    };
-    const statusLine = (label, sym) => stylized
-      ? `⏱️ _${label}${sym}_`
-      : `⏱️ ${label}${sym}`;
-    if (state.finished) {
-      const sym = overtimeSym(state.matchEndSeconds, state.periodMinutes * 2);
-      lines.push(statusLine(t('finalPartido'), sym));
-    } else if (state.firstHalfEndSeconds !== null) {
-      const sym = overtimeSym(state.firstHalfEndSeconds, state.periodMinutes);
-      lines.push(statusLine(t('final1T'), sym));
-    } else if (state.matchStarted) {
-      lines.push(statusLine(t('inicioPartido'), ''));
-    }
+    if (goalsA.length) lines.push(`⚽ ${local}  (${goalsA.map(formatGoalMinute).join(', ')})`);
+    if (goalsB.length) lines.push(`⚽ ${away}  (${goalsB.map(formatGoalMinute).join(', ')})`);
+    let status;
+    if (state.finished) status = `${t('finalPartido')} (${formatEndMinute(state.matchEndSeconds, 2)})`;
+    else if (state.currentHalf === 2 && !state.halfStarted) status = `${t('final1T')} (${formatEndMinute(state.firstHalfEndSeconds, 1)})`;
+    else status = `${t(state.currentHalf === 1 ? 't1' : 't2')} · ${clockTxt(getElapsedSeconds())}`;
+    lines.push(stylized ? `⏱️ _${status}_` : `⏱️ ${status}`);
   }
 
   lines.push(SEP);
@@ -586,24 +569,8 @@ function buildShareText(stylized = true) {
   return lines.join('\n');
 }
 
-async function copyText() { try { await navigator.clipboard.writeText(buildShareText(state.stylizedText)); alert(t('copiarToast')); } catch { alert(t('copiarError')); } }
-
 // Shared offscreen canvas for share image rendering
 let shareCanvasCache = null;
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-}
 
 function buildCanvasToElement(c) {
   const W = 1080, H = 1080;
@@ -661,9 +628,9 @@ function buildCanvasToElement(c) {
   // ── LOCAL / VISITANTE labels — smaller, in team color ───────
   ctx.font = '900 36px "Space Grotesk"';
   ctx.textAlign = 'center';
-  ctx.fillStyle = state.colorA1;
+  ctx.fillStyle = readableTeamColor(state.colorA1);
   ctx.fillText(t('local'), scoreAX, cardY - 18);
-  ctx.fillStyle = state.colorB1;
+  ctx.fillStyle = readableTeamColor(state.colorB1);
   ctx.fillText(t('visitante'), scoreBX, cardY - 18);
 
   // ── LOCAL card — sharp corners, semi-transparent ────────────
@@ -681,7 +648,7 @@ function buildCanvasToElement(c) {
     ctx.shadowColor = state.colorA1;
     ctx.shadowBlur = 18;
     ctx.font = '900 68px "Anton SC"';
-    ctx.fillText(clubA.toUpperCase(), scoreAX, cardY + 98);
+    ctx.fillText(clubA.toUpperCase(), scoreAX, cardY + 98, cardW - 32);
     ctx.restore();
   }
 
@@ -693,7 +660,7 @@ function buildCanvasToElement(c) {
   ctx.shadowColor = state.colorA1;
   ctx.shadowBlur = 28;
   ctx.font = '900 300px "Space Grotesk"';
-  ctx.fillText(String(goalsA), scoreAX, scoreY);
+  ctx.fillText(String(goalsA), scoreAX, scoreY, cardW - 32);
   ctx.restore();
 
   // ── VISITANTE card — sharp corners, semi-transparent ─────────
@@ -711,7 +678,7 @@ function buildCanvasToElement(c) {
     ctx.shadowColor = state.colorB1;
     ctx.shadowBlur = 18;
     ctx.font = '900 68px "Anton SC"';
-    ctx.fillText(clubB.toUpperCase(), scoreBX, cardY + 98);
+    ctx.fillText(clubB.toUpperCase(), scoreBX, cardY + 98, cardW - 32);
     ctx.restore();
   }
 
@@ -722,7 +689,7 @@ function buildCanvasToElement(c) {
   ctx.shadowColor = state.colorB1;
   ctx.shadowBlur = 28;
   ctx.font = '900 300px "Space Grotesk"';
-  ctx.fillText(String(goalsB), scoreBX, scoreY);
+  ctx.fillText(String(goalsB), scoreBX, scoreY, cardW - 32);
   ctx.restore();
 
   // ── Date — only if enabled in settings ──────────────────────
@@ -776,31 +743,15 @@ function getShareCanvas() {
   return shareCanvasCache;
 }
 
-function downloadImage() {
-  const c = getShareCanvas();
-  buildCanvasToElement(c);
-  const a = document.createElement('a');
-  a.href = c.toDataURL('image/png');
-  a.download = `fuchitron-${Date.now()}.png`;
-  a.click();
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
-
-async function copyImage() {
-  const c = getShareCanvas();
-  buildCanvasToElement(c);
-  c.toBlob(async blob => {
-    if (!blob) return alert(t('copiarError'));
-    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); alert(t('copiarToast')); }
-    catch { alert(t('copiarImagenError')); }
-  }, 'image/png');
-}
-
 let deferredInstallPrompt = null;
 function setupInstallPrompt() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   if (isStandalone) return;
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isIOS = isIOSDevice();
   if (isIOS) {
     els.installHint.hidden = false;
     els.installHint.textContent = t('instalarIos');
@@ -811,7 +762,7 @@ function setupInstallPrompt() {
     deferredInstallPrompt = e;
     els.installApp.hidden = false;
     els.installHint.hidden = false;
-    els.installHint.textContent = 'Instalá Fuchitron como app para abrirla full-screen y usarla offline.';
+    els.installHint.textContent = t('instalarHint');
   });
 
   els.installApp?.addEventListener('click', async () => {
@@ -827,18 +778,22 @@ async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
 
   let refreshing = false;
+  let updateRequested = false;
 
   const showUpdate = (reg) => {
     // Solo mostrar en clientes ya controlados (evita banner pegado en primera carga)
     if (!reg?.waiting || !navigator.serviceWorker.controller) return;
     if (els.updateBanner) els.updateBanner.hidden = false;
-    els.updateNow?.addEventListener('click', () => {
+    els.updateNow.onclick = () => {
+      if (!reg.waiting) return;
+      updateRequested = true;
+      save();
       reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }, { once: true });
+    };
   };
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
+    if (refreshing || !updateRequested) return;
     refreshing = true;
     window.location.reload();
   });
@@ -859,7 +814,7 @@ async function registerSW() {
     });
 
     // chequeo proactivo por sesión
-    reg.update();
+    reg.update().catch(() => {});
   } catch {}
 }
 
@@ -868,12 +823,16 @@ els.teamB.addEventListener('input', e => { state.teamB = e.target.value; save();
 els.includeDate.addEventListener('change', e => { state.includeDate = e.target.checked; save(); renderSharePreview(); });
 els.includeDateText.addEventListener('change', e => { state.includeDateText = e.target.checked; save(); renderSharePreview(); });
 els.stylizedText.addEventListener('change', e => { state.stylizedText = e.target.checked; save(); renderSharePreview(); });
-els.keepScreenOn?.addEventListener('change', e => { state.keepScreenOn = e.target.checked; save(); });
+els.keepScreenOn?.addEventListener('change', e => {
+  state.keepScreenOn = e.target.checked;
+  if (state.keepScreenOn) requestWakeLock(); else releaseWakeLock();
+  save();
+});
 
 // Duration pill buttons
 els.durationGroup?.addEventListener('click', e => {
   const btn = e.target.closest('.pill-btn');
-  if (!btn) return;
+  if (!btn || state.matchStarted) return;
   state.periodMinutes = Number(btn.dataset.value);
   save(); render();
 });
@@ -883,6 +842,11 @@ els.langGroup?.addEventListener('click', e => {
   const btn = e.target.closest('.pill-btn');
   if (!btn) return;
   state.lang = btn.dataset.value;
+  const url = new URL(location.href);
+  if (url.searchParams.has('lang')) {
+    url.searchParams.set('lang', state.lang);
+    history.replaceState(null, '', url);
+  }
   save();
   updateMetaTags();
   updateUIStrings();
@@ -903,13 +867,13 @@ els.settingsBtn?.addEventListener('click', () => {
 });
 els.fullscreenBtn?.addEventListener('click', () => {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen?.().catch(() => {});
   } else {
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen?.().catch(() => {});
   }
 });
 els.closeSettings?.addEventListener('click', () => els.settingsDialog?.close());
-els.settingsDialog?.addEventListener('click', e => { if (e.target === els.settingsDialog) els.settingsDialog.close(); });
+els.settingsDialog?.addEventListener('click', closeOnBackdrop);
 els.shareBtn?.addEventListener('click', () => {
   els.shareDialog?.showModal();
   const shareH2 = els.shareDialog?.querySelector('h2');
@@ -925,6 +889,12 @@ els.shareBtn?.addEventListener('click', () => {
   renderSharePreview();
 });
 
+function closeOnBackdrop(event) {
+  const dialog = event.currentTarget;
+  const r = dialog.getBoundingClientRect();
+  if (event.target === dialog && (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)) dialog.close();
+}
+
 function renderSharePreview() {
   els.shareTextPreview.textContent = buildShareText(state.stylizedText);
   const c = getShareCanvas();
@@ -934,169 +904,67 @@ function renderSharePreview() {
   els.shareCanvas.getContext('2d').drawImage(c, 0, 0);
 }
 els.closeShare?.addEventListener('click', () => els.shareDialog?.close());
-els.shareDialog?.addEventListener('click', e => { if (e.target === els.shareDialog) els.shareDialog.close(); });
+els.shareDialog?.addEventListener('click', closeOnBackdrop);
 els.shareTextBtn.addEventListener('click', async () => {
   const text = buildShareText(state.stylizedText);
-  if (navigator.share) { try { await navigator.share({ text }); return; } catch {} }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; }
+    catch (error) { if (error.name === 'AbortError') return; }
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
 });
 els.copyTextBtn.addEventListener('click', async () => { try { await navigator.clipboard.writeText(buildShareText(state.stylizedText)); alert(t('copiarToast')); } catch { alert(t('copiarError')); } });
-els.downloadTxtBtn.addEventListener('click', () => {
+function downloadBlob(blob, filename) {
+  if (!blob) { alert(t('copiarError')); return; }
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([buildShareText(state.stylizedText)], { type: 'text/plain' }));
-  a.download = `fuchitron-${Date.now()}.txt`;
+  a.href = url;
+  a.download = filename;
   a.click();
-});
-els.createSpectateBtn?.addEventListener('click', async () => {
-  // If we already have a spectate code for this match, just re-copy the link
-  // instead of creating a new orphan in Supabase.
-  if (state.spectateCode) {
-    const url = `${window.location.origin}/live/${state.spectateCode}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      alert(t('spectateToast'));
-    } catch {
-      prompt(t('spectatePrompt'), url);
-    }
-    return;
-  }
-
-  // Retry loop: if the generated code already exists in the matches table
-  // (Supabase returns 409 Conflict via UNIQUE on match_code, or 400 if the
-  // table has no UNIQUE and we're racing with a duplicate), generate a new
-  // code and try again. Bounded at 3 attempts — beyond that the server is
-  // clearly broken and the user should know. Audit ref: AUDIT-2026-07-23 M7.
-  let code = null;
-  let r = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    code = generateMatchCode();
-    const match = {
-      match_code: code,
-      team_a: state.teamA || t('local'),
-      team_b: state.teamB || t('visitante'),
-      score_a: (state.goals||[]).filter(g=>g.side==='A').length,
-      score_b: (state.goals||[]).filter(g=>g.side==='B').length,
-      current_half: state.currentHalf,
-      half_seconds: state.halfSeconds,
-      running: state.running,
-      finished: state.finished,
-      match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
-      period_minutes: state.periodMinutes,
-      language: state.lang,
-      goals: state.goals || [],
-    };
-    try {
-      r = await fetch(`${SUPABASE_URL}/rest/v1/matches`, {
-        method: 'POST',
-        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify(match),
-      });
-    } catch (e) {
-      alert(t('spectateError'));
-      return;
-    }
-    if (r.status === 409 || r.status === 400) {
-      // Collision or invalid body — try another code.
-      continue;
-    }
-    if (!r.ok) {
-      alert(t('spectateError'));
-      return;
-    }
-    break; // success
-  }
-  if (!r || !r.ok) {
-    alert(t('spectateError'));
-    return;
-  }
-  state.spectateCode = code;
-  save();
-  await updateSpectateMatch(code);
-  const spectateUrl = `${window.location.origin}/live/${code}`;
-  if (navigator.clipboard) {
-    await navigator.clipboard.writeText(spectateUrl);
-    alert(t('spectateToast'));
-  } else {
-    prompt(t('spectatePrompt'), spectateUrl);
-  }
-});
-
-function generateMatchCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  // crypto.getRandomValues() instead of Math.random() — the latter is not a
-  // CSPRNG and its output is reproducible from a small internal state, which
-  // means an attacker watching public matches could predict upcoming codes.
-  // See audit-2026-07-23.md M7. crypto.getRandomValues is supported in every
-  // browser Fuchitron runs in (all https + modern WebKit/Chromium/Gecko).
-  const buf = new Uint8Array(6);
-  crypto.getRandomValues(buf);
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[buf[i] % chars.length];
-  return code;
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-
-async function updateSpectateMatch(code) {
-  const match = {
-    team_a: state.teamA || t('local'),
-    team_b: state.teamB || t('visitante'),
-    score_a: (state.goals||[]).filter(g=>g.side==='A').length,
-    score_b: (state.goals||[]).filter(g=>g.side==='B').length,
-    current_half: state.currentHalf,
-    half_seconds: state.halfSeconds,
-    running: state.running,
-    finished: state.finished,
-    match_start_ts: state.matchStartTS ? String(state.matchStartTS) : null,
-    period_minutes: state.periodMinutes,
-    language: state.lang,
-    goals: state.goals || [],
-  };
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/matches?match_code=eq.${encodeURIComponent(code)}`, {
-      method: 'PATCH',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(match),
-    });
-  } catch (e) { /* spectator sync best-effort */ }
-}
-
-// Sync to Supabase every 10s when running
-setInterval(async () => {
-  if (state.matchStarted && state.spectateCode) {
-    await updateSpectateMatch(state.spectateCode);
-  }
-}, 10000);
+els.downloadTxtBtn.addEventListener('click', () => {
+  downloadBlob(new Blob([buildShareText(state.stylizedText)], { type: 'text/plain;charset=utf-8' }), `fuchitron-${Date.now()}.txt`);
+});
 
 els.shareImageBtn.addEventListener('click', async () => {
   const c = getShareCanvas();
   buildCanvasToElement(c);
   const blob = await new Promise(resolve => c.toBlob(resolve, 'image/png'));
-  if (navigator.share && navigator.canShare && blob) {
-    try { await navigator.share({ files: [new File([blob], 'fuchitron.png', { type: 'image/png' })] }); return; } catch {}
+  if (!blob) return alert(t('copiarError'));
+  const files = [new File([blob], 'fuchitron.png', { type: 'image/png' })];
+  if (navigator.share && navigator.canShare?.({ files })) {
+    try { await navigator.share({ files }); return; }
+    catch (error) { if (error.name === 'AbortError') return; }
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `fuchitron-${Date.now()}.png`; a.click();
+  downloadBlob(blob, `fuchitron-${Date.now()}.png`);
 });
 els.copyImageBtn.addEventListener('click', async () => {
   const c = getShareCanvas();
   buildCanvasToElement(c);
-  c.toBlob(async blob => {
-    if (!blob) return alert(t('copiarError'));
-    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); alert(t('copiarToast')); }
-    catch { alert(t('copiarError')); }
-  });
+  try {
+    // Promise-valued ClipboardItem retains user activation in Safari.
+    const blob = new Promise((resolve, reject) => c.toBlob(value => value ? resolve(value) : reject(new Error('Canvas export failed')), 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    alert(t('copiarToast'));
+  } catch { alert(t('copiarImagenError')); }
 });
 els.downloadImageBtn.addEventListener('click', () => {
   const c = getShareCanvas();
   buildCanvasToElement(c);
-  const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `fuchitron-${Date.now()}.png`; a.click();
+  c.toBlob(blob => downloadBlob(blob, `fuchitron-${Date.now()}.png`), 'image/png');
 });
 
-document.fonts.ready.then(() => { load(); if (urlLangValid) state.lang = urlLang; updateUIStrings(); render(); });
+// Font loading must never overwrite state or delay timer recovery.
+document.fonts.ready.then(() => { if (els.shareDialog.open) renderSharePreview(); });
+logoImg.addEventListener('load', () => { if (els.shareDialog.open) renderSharePreview(); });
 
 function updateMetaTags() {
   const lang = state.lang;
   const dict = I18N[lang] || I18N.es;
+  document.documentElement.lang = state.lang;
   document.title = dict.appTitle;
+  document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', dict.ogTitle);
   document.querySelector('meta[name="description"]')?.setAttribute('content', dict.appDescription);
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', dict.ogTitle);
   document.querySelector('meta[property="og:description"]')?.setAttribute('content', dict.ogDescription);
@@ -1106,16 +974,26 @@ function updateMetaTags() {
 function updatePillSelection() {
   // Duration pills
   els.durationGroup?.querySelectorAll('.pill-btn').forEach(btn => {
-    btn.classList.toggle('active', Number(btn.dataset.value) === state.periodMinutes);
+    const selected = Number(btn.dataset.value) === state.periodMinutes;
+    btn.classList.toggle('active', selected);
+    btn.setAttribute('aria-pressed', String(selected));
+    btn.disabled = state.matchStarted;
   });
   // Language pills
   els.langGroup?.querySelectorAll('.pill-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.value === state.lang);
+    const selected = btn.dataset.value === state.lang;
+    btn.classList.toggle('active', selected);
+    btn.setAttribute('aria-pressed', String(selected));
   });
 }
 
 function updateUIStrings() {
   const dict = I18N[state.lang] || I18N.es;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  els.fullscreenBtn.setAttribute('aria-label', t('pantallaCompleta'));
+  els.shareBtn.setAttribute('aria-label', t('compartir'));
+  els.settingsBtn.setAttribute('aria-label', t('ajustes'));
+  updateStorageNotice();
   // Settings dialog
   const settingsH2 = els.settingsDialog?.querySelector('h2');
   if (settingsH2) settingsH2.textContent = I18N[state.lang]?.ajustes || 'Ajustes';
@@ -1133,7 +1011,7 @@ function updateUIStrings() {
 
   // Install hint
   if (els.installApp) els.installApp.textContent = dict.instalarWebApp;
-  if (els.installHint) els.installHint.textContent = dict.instalarHint;
+  if (els.installHint) els.installHint.textContent = isIOSDevice() ? dict.instalarIos : dict.instalarHint;
   if (els.tagline) els.tagline.textContent = dict.tagline;
 
   // Reset timer button
@@ -1164,22 +1042,29 @@ function updateUIStrings() {
   els.teamB.placeholder = dict.lugarHolderVisitante;
 }
 
-// Init lang: URL param > localStorage > detect
-(function initLang() {
-  const urlLang = new URLSearchParams(location.search).get('lang');
-  if (urlLang && I18N[urlLang]) {
-    state.lang = urlLang;
-  } else if (!state.lang) {
-    state.lang = detectLang();
-  }
-})();
+// Restore synchronously before rendering, starting timers, or binding updates.
+load();
+if (urlLangValid) { state.lang = urlLang; save(); }
 updateMetaTags();
 updateUIStrings();
-
 render();
+if (state.running) startTicker();
+els.fullscreenBtn.hidden = !document.fullscreenEnabled;
 setupInstallPrompt();
 setupOfflineBanner();
 registerSW();
+
+// A second tab should see edits rather than overwrite them on its next clock tick.
+window.addEventListener('storage', event => {
+  if (event.key !== 'fuchitron_v4' && event.key !== null) return;
+  clearInterval(tick);
+  releaseWakeLock();
+  dismissSnackbar();
+  load();
+  updateMetaTags(); updateUIStrings(); render();
+  if (state.running) startTicker();
+  if (els.shareDialog.open) renderSharePreview();
+});
 
 // Offline / online indicator. Surfaces the connection state because on the
 // field with no signal the user needs to know if the goal they just scored
@@ -1190,7 +1075,7 @@ function setupOfflineBanner() {
   if (!els.offlineBanner) return;
   function setOffline() {
     els.offlineBanner.textContent = t('offlineBanner');
-    els.offlineBanner.hidden = false;
+    els.offlineBanner.hidden = storageFailed;
   }
   function setOnline() {
     els.offlineBanner.textContent = t('offlineAgain');
@@ -1199,19 +1084,4 @@ function setupOfflineBanner() {
   window.addEventListener('offline', setOffline);
   window.addEventListener('online', setOnline);
   if (!navigator.onLine) setOffline();
-}
-
-if (state.running) {
-  // Recover from reload: recompute elapsed time from matchStartTS instead of
-  // incrementing halfSeconds (which would drift by however long the tab was closed).
-  state.halfSeconds = getElapsedSeconds();
-  els.clock.textContent = clockTxt(state.halfSeconds);
-  els.overtime.textContent = overtimeText();
-  tick = setInterval(() => {
-    const elapsed = getElapsedSeconds();
-    state.halfSeconds = elapsed;
-    els.clock.textContent = clockTxt(elapsed);
-    els.overtime.textContent = overtimeText();
-    save();
-  }, 1000);
 }

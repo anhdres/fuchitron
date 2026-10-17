@@ -10,10 +10,10 @@ A scoreboard and timer for amateur football. Mobile-first, PWA, multilingual.
 fuchitron/
 ├── src/              ← WHAT GETS DEPLOYED. ONLY app + assets the app needs.
 │   ├── index.html
-│   ├── live.html
-│   ├── spectate.html
 │   ├── app.js
 │   ├── styles.css
+│   ├── fonts.css
+│   ├── fonts/        ← self-hosted fonts, including the icon subset
 │   ├── i18n.js
 │   ├── sw.js
 │   ├── manifest.json
@@ -26,8 +26,6 @@ fuchitron/
 └── scripts/          ← operational scripts (NOT deployed)
     └── backup.sh
 └── .githooks/        ← pre-commit hygiene check
-└── .github/
-    └── workflows/    ← GitHub Actions (heartbeat, etc.)
 ```
 
 **Golden rule:** any new file inside `src/` must be strictly required for the
@@ -60,18 +58,42 @@ Supported languages: `es`, `en`, `de`, `pt`, `fr`, `it`, `zh`. Source of truth:
 The service worker caches core assets and uses a `CACHE_VERSION` constant —
 bump it on each deploy to bust stale caches.
 
-## Spectator link
+## Offline-first match data
 
-`live.html` and `spectate.html` let anyone follow a match in real time via a
-shared link. The host creates a spectate link from the share dialog, the URL
-looks like `https://fuchitron.app/live/XXXXXX` (or the short form `/s/XXXXXX`).
+Scores, goals, settings, and the timer anchor are kept on the device under
+`fuchitron_v4`. The key is retained so existing matches survive upgrades.
+Stored data is validated; runtime handles are not serialized. Open tabs
+synchronize edits through storage events. This is a local scoreboard, not a
+multi-user database: simultaneous edits in separate tabs are not transactional.
 
-State is synced to Supabase (matches table). The spectator polls every 3s
-and renders score, clock, period, and goal timeline.
+The former remote spectator feature and Supabase heartbeat were retired in
+October 2026. Legacy spectator URLs redirect to the scoreboard. Sharing text
+and images still works without any backend.
 
-A GitHub Actions workflow (`.github/workflows/supabase-heartbeat.yml`) pings
-the Supabase project every 3 days to keep it warm on the free tier (Supabase
-pauses idle projects after 7 days).
+Typography and the Material Symbols subset are self-hosted and precached.
+Licenses are in `docs/font-licenses/`. Service-worker updates wait for the
+user to choose **Update now** or close all old tabs. The cached shell keeps
+HTML, CSS, fonts and JavaScript on the same release, including offline.
+When changing shell assets, bump both `CACHE_NAME` in `src/sw.js` and the
+asset query version in `src/index.html` (the latter also bypasses pre-v12 caches).
+
+## Verification
+
+The regression scripts require Node.js and Playwright Core with Chrome. They
+use isolated profiles and never touch a user's browser data.
+
+```bash
+python3 -m http.server 8766 --bind 127.0.0.1 --directory src
+# In another terminal:
+PLAYWRIGHT_MODULE=/path/to/playwright-core node scripts/audit-regressions.cjs
+PLAYWRIGHT_MODULE=/path/to/playwright-core node scripts/audit-pwa.cjs
+```
+
+Set `OLD_SRC` to a previous release's `src/` directory to include the v11→v12
+upgrade regression. Results and screenshots go to `AUDIT_OUTPUT` (defaults to
+`/tmp/fuchitron-audit-20261017`). `BASE_URL` overrides the regression server URL;
+`AUDIT_FILTER` runs matching named cases only. The PWA suite starts its own
+local server, including a simulated next release.
 
 ## Contributing
 

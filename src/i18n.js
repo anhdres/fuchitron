@@ -28,7 +28,7 @@ const I18N = {
     pantallaCompleta: 'Pantalla completa',
     mantenerPantalla: 'Mantener pantalla encendida',
     ajustes: 'Ajustes',
-    duracionPartido: 'Duración del partido',
+    duracionPartido: "Duración de cada tiempo (min)",
     equipoLocal: 'Equipo Local',
     equipoVisitante: 'Equipo Visitante',
     colorLocal: 'Color Local',
@@ -80,15 +80,6 @@ const I18N = {
     t1: '1T',
     t2: '2T',
 
-    // Spectate link
-    spectateLink: 'Link para seguir en vivo',
-    liveLinkSection: 'Link en vivo',
-    copyLiveLink: 'Copiar link en vivo',
-    liveLinkDescription: 'Cualquiera con el link puede seguir el partido en vivo.',
-    spectateShareText: 'Seguí este partido en vivo:',
-    spectateToast: '¡Link copiado!',
-    spectatePrompt: 'Compartí este link:',
-    spectateError: 'No pude crear el link. Probá de nuevo.',
 
     // Snackbar
     golBorrado: 'Gol borrado',
@@ -96,6 +87,11 @@ const I18N = {
     instalarIos: 'iPhone: en Safari tocá Compartir → Agregar a pantalla de inicio.',
     offlineBanner: 'Sin conexión · los goles se guardan localmente',
     offlineAgain: 'Conexión restaurada',
+    storageError: "No se pudo guardar el partido en este navegador. No cierres esta pestaña; compartí el resultado para conservarlo.",
+    updateAvailable: "Hay una nueva versión de Fuchitron.",
+    updateNow: "Actualizar ahora",
+    timeline: "Cronología",
+    feedback: "¿Preguntas? ¿Ideas?",
   },
 
   en: {
@@ -129,7 +125,7 @@ const I18N = {
     pantallaCompleta: 'Fullscreen',
     mantenerPantalla: 'Keep screen on',
     ajustes: 'Settings',
-    duracionPartido: 'Match duration',
+    duracionPartido: "Half duration (min)",
     equipoLocal: 'Home Team',
     equipoVisitante: 'Away Team',
     colorLocal: 'Home Color',
@@ -176,16 +172,12 @@ const I18N = {
 
     t1: '1st',
 
-    // Spectate link
-    spectateLink: 'Follow live link',
-    liveLinkSection: 'Live link',
-    copyLiveLink: 'Copy live link',
-    liveLinkDescription: 'Anyone with the link can follow match progress live.',
-    spectateShareText: 'Follow this match live:',
-    spectateToast: 'Link copied!',
-    spectatePrompt: 'Share this link:',
-    spectateError: 'Could not create the link. Try again.',
     t2: '2nd',
+    storageError: "This browser could not save the match. Keep this tab open; share the result to keep a copy.",
+    updateAvailable: "A new version of Fuchitron is available.",
+    updateNow: "Update now",
+    timeline: "Timeline",
+    feedback: "Questions? Ideas?",
   },
 
   zh: {
@@ -219,7 +211,7 @@ const I18N = {
     pantallaCompleta: '全屏',
     mantenerPantalla: '保持屏幕常亮',
     ajustes: '设置',
-    duracionPartido: '比赛时长',
+    duracionPartido: "每半场时长（分钟）",
     equipoLocal: '主队',
     equipoVisitante: '客队',
     colorLocal: '主队颜色',
@@ -266,16 +258,12 @@ const I18N = {
 
     t1: '第1节',
 
-    // Spectate link
-    spectateLink: '直播链接',
-    liveLinkSection: '直播链接',
-    copyLiveLink: '复制直播链接',
-    liveLinkDescription: '任何人都可以通过链接实时跟踪比赛进度。',
-    spectateShareText: '实时关注比赛:',
-    spectateToast: '链接已复制！',
-    spectatePrompt: '分享此链接：',
-    spectateError: '无法创建链接，请重试。',
     t2: '第2节',
+    storageError: "此浏览器无法保存比赛。请勿关闭此标签页；分享结果以保留副本。",
+    updateAvailable: "Fuchitron 有新版本。",
+    updateNow: "立即更新",
+    timeline: "时间线",
+    feedback: "问题或建议？",
   },
 
   de: {
@@ -309,7 +297,7 @@ const I18N = {
     pantallaCompleta: 'Vollbild',
     mantenerPantalla: 'Bildschirm eingeschaltet lassen',
     ajustes: 'Einstellungen',
-    duracionPartido: 'Spielzeit',
+    duracionPartido: "Dauer pro Halbzeit (Min.)",
     equipoLocal: 'Heimteam',
     equipoVisitante: 'Gastteam',
     colorLocal: 'Heimfarbe',
@@ -356,16 +344,12 @@ const I18N = {
 
     t1: '1. HZ',
 
-    // Spectate link
-    spectateLink: 'Live-Link',
-    liveLinkSection: 'Live-Link',
-    copyLiveLink: 'Live-Link kopieren',
-    liveLinkDescription: 'Jeder mit dem Link kann den Spielverlauf live verfolgen.',
-    spectateShareText: 'Dieses Spiel live verfolgen:',
-    spectateToast: 'Link kopiert!',
-    spectatePrompt: 'Diesen Link teilen:',
-    spectateError: 'Link konnte nicht erstellt werden. Nochmal versuchen.',
     t2: '2. HZ',
+    storageError: "Dieses Spiel konnte nicht gespeichert werden. Lass diesen Tab offen und teile das Ergebnis, um eine Kopie zu behalten.",
+    updateAvailable: "Eine neue Version von Fuchitron ist verfügbar.",
+    updateNow: "Jetzt aktualisieren",
+    timeline: "Spielverlauf",
+    feedback: "Fragen? Ideen?",
   },
 
   pt: {
@@ -399,7 +383,7 @@ const I18N = {
     pantallaCompleta: 'Tela cheia',
     mantenerPantalla: 'Manter tela ligada',
     ajustes: 'Configurações',
-    duracionPartido: 'Duração do jogo',
+    duracionPartido: "Duração de cada tempo (min)",
     equipoLocal: 'Time da Casa',
     equipoVisitante: 'Time de Fora',
     colorLocal: 'Cor da Casa',
@@ -447,15 +431,11 @@ const I18N = {
     t1: '1T',
     t2: '2T',
 
-    // Spectate link
-    spectateLink: 'Link para acompanhar ao vivo',
-    liveLinkSection: 'Link ao vivo',
-    copyLiveLink: 'Copiar link ao vivo',
-    liveLinkDescription: 'Qualquer pessoa com o link pode acompanhar o jogo ao vivo.',
-    spectateShareText: 'Acompanha este jogo ao vivo:',
-    spectateToast: 'Link copiado!',
-    spectatePrompt: 'Compartilha este link:',
-    spectateError: 'Não consegui criar o link. Tenta de novo.',
+    storageError: "Não foi possível salvar o jogo neste navegador. Mantenha esta aba aberta e compartilhe o resultado para guardar uma cópia.",
+    updateAvailable: "Uma nova versão do Fuchitron está disponível.",
+    updateNow: "Atualizar agora",
+    timeline: "Linha do tempo",
+    feedback: "Dúvidas? Ideias?",
   },
 
   fr: {
@@ -489,7 +469,7 @@ const I18N = {
     pantallaCompleta: 'Plein écran',
     mantenerPantalla: 'Garder l\'écran allumé',
     ajustes: 'Paramètres',
-    duracionPartido: 'Durée du match',
+    duracionPartido: "Durée par mi-temps (min)",
     equipoLocal: 'Équipe domicile',
     equipoVisitante: 'Équipe extérieur',
     colorLocal: 'Couleur domicile',
@@ -536,16 +516,12 @@ const I18N = {
 
     t1: '1MT',
 
-    // Spectate link
-    spectateLink: 'Lien pour suivre en direct',
-    liveLinkSection: 'Lien en direct',
-    copyLiveLink: 'Copier le lien en direct',
-    liveLinkDescription: 'Toute personne ayant le lien peut suivre le match en direct.',
-    spectateShareText: 'Suivez ce match en direct :',
-    spectateToast: 'Lien copié !',
-    spectatePrompt: 'Partagez ce lien :',
-    spectateError: 'Impossible de créer le lien. Réessayez.',
     t2: '2MT',
+    storageError: "Ce navigateur n’a pas pu enregistrer le match. Gardez cet onglet ouvert et partagez le résultat pour en conserver une copie.",
+    updateAvailable: "Une nouvelle version de Fuchitron est disponible.",
+    updateNow: "Mettre à jour",
+    timeline: "Chronologie",
+    feedback: "Des questions ? Des idées ?",
   },
 
   it: {
@@ -579,7 +555,7 @@ const I18N = {
     pantallaCompleta: 'Schermo intero',
     mantenerPantalla: 'Mantieni lo schermo acceso',
     ajustes: 'Impostazioni',
-    duracionPartido: 'Durata partita',
+    duracionPartido: "Durata di ogni tempo (min)",
     equipoLocal: 'Squadra casa',
     equipoVisitante: 'Squadra ospite',
     colorLocal: 'Colore casa',
@@ -627,15 +603,11 @@ const I18N = {
     t1: '1T',
     t2: '2T',
 
-    // Spectate link
-    spectateLink: 'Link per seguire in diretta',
-    liveLinkSection: 'Link live',
-    copyLiveLink: 'Copia link live',
-    liveLinkDescription: 'Chiunque abbia il link può seguire la partita in diretta.',
-    spectateShareText: 'Segui questa partita in diretta:',
-    spectateToast: 'Link copiato!',
-    spectatePrompt: 'Condividi questo link:',
-    spectateError: 'Impossibile creare il link. Riprova.',
+    storageError: "Questo browser non ha salvato la partita. Tieni aperta questa scheda e condividi il risultato per conservarne una copia.",
+    updateAvailable: "È disponibile una nuova versione di Fuchitron.",
+    updateNow: "Aggiorna ora",
+    timeline: "Cronologia",
+    feedback: "Domande? Idee?",
   },
 };
 

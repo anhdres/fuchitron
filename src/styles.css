@@ -28,7 +28,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-top, 0px));
   border-bottom: 2px solid var(--line);
   padding: 0 14px;
   padding-top: env(safe-area-inset-top);
@@ -157,7 +157,7 @@ body {
 .scoreboard {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -227,7 +227,7 @@ body {
 
 .goal-buttons-outside {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -348,7 +348,7 @@ h2 {
 }
 .share-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 .share-grid button { min-height: 52px; }
@@ -390,8 +390,10 @@ input {
 }
 .palette { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
   border-radius: 999px;
   border: 2px solid #fff;
 }
@@ -556,32 +558,6 @@ dialog.settings-dialog[open] {
   color: #888;
   margin: 0 0 8px;
 }
-.live-link-section {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 14px 12px;
-  margin-bottom: 18px;
-  border: 1px solid #39ff14;
-  background: rgba(57, 255, 20, 0.04);
-  border-radius: 4px;
-}
-.live-link-section .share-section-label { color: #39ff14; }
-.live-link-description {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: #b5b5b5;
-  text-align: center;
-}
-.share-dialog-btn.primary {
-  background: #39ff14;
-  color: #000;
-  border: 2px solid #39ff14;
-  font-weight: 700;
-}
-.share-dialog-btn.primary .material-symbols-outlined { color: #000; }
 #lblIncludeDate,
 #lblIncludeDateText,
 #lblStylizedText {
@@ -599,7 +575,7 @@ dialog.settings-dialog[open] {
 .share-canvas {
   width: 100%;
   max-width: 100%;
-  max-height: 50vh;
+  height: auto;
   display: block;
   border: 1px solid #333;
   background: #000;
@@ -663,7 +639,7 @@ input {
 }
 .pill-btn {
   min-width: 44px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 10px;
   background: #000;
   color: #fff;
@@ -696,9 +672,9 @@ input {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  .share-dialog .share-canvas {
+  #shareDialog .share-canvas {
     width: 100%;
-    max-height: 50vh;
+    height: auto;
     object-fit: contain;
   }
 }
@@ -768,13 +744,13 @@ input {
   position: relative;
   display: inline-block;
   width: 48px;
-  height: 26px;
+  height: 44px;
 }
-.switch input { opacity: 0; width: 0; height: 0; }
+.switch input { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; z-index: 1; cursor: pointer; }
 .slider {
   position: absolute;
   cursor: pointer;
-  inset: 0;
+  inset: 9px 0;
   background: #333;
   border-radius: 26px;
   transition: 0.3s;
@@ -797,10 +773,8 @@ input:checked + .slider::before { transform: translateX(22px); }
    the connection comes back. Position: fixed, just below the topbar. */
 .offline-banner {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
+  position: relative;
+  z-index: 19;
   background: #1c1c1c;
   color: #39FF14;
   text-align: center;
@@ -810,3 +784,35 @@ input:checked + .slider::before { transform: translateX(22px); }
   border-bottom: 2px solid #39FF14;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
+
+/* Keep long labels/names and all seven languages within small screens. */
+.team-slot, .team-panel, .goal-btn { min-width: 0; }
+.team-panel strong, .goal-meta { overflow-wrap: anywhere; max-width: 100%; }
+.goal-meta { flex: 1; }
+.delete-goal, .event-minute { flex-shrink: 0; }
+.share-text-preview { white-space: pre-wrap; }
+.share-col-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.share-dialog-btn { flex-direction: column; min-width: 0; overflow-wrap: anywhere; padding: 10px 4px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:not(:disabled) { cursor: pointer; touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.switch input:focus-visible + .slider { outline: 3px solid #fff; outline-offset: 3px; }
+.settings-dialog-header { padding-top: max(14px, env(safe-area-inset-top)); }
+.settings-dialog-body { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.storage-banner { background: #511b00; color: #fff; padding: 12px; text-align: center; }
+@media (max-width: 420px) {
+  .topbar { padding-left: 8px; padding-right: 8px; }
+  .brand { gap: 5px; min-width: 0; flex-shrink: 1; }
+  .brand-logo { width: 30px; height: 30px; }
+  .brand h1 { font-size: clamp(18px, 5.5vw, 23px); }
+  .topbar-actions { gap: 4px; }
+  .topbar-actions .icon-btn { padding: 6px; width: 44px; flex-shrink: 0; }
+  .live-row { flex-wrap: wrap; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+/* Flex sizing accounts for translated headers and safe-area padding. */
+dialog.settings-dialog[open] { display: flex; flex-direction: column; }
+.settings-dialog-header { flex-shrink: 0; }
+dialog.settings-dialog[open] .settings-dialog-body { flex: 1; min-height: 0; max-height: none; overscroll-behavior: contain; }

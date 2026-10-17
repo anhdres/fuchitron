@@ -15,7 +15,7 @@
     <meta property="og:site_name" content="Fuchitron" />
     <meta property="og:title" content="Fuchitron — Marcador de fútbol amateur" />
     <meta property="og:description" content="Marcador simple para cancha real: goles, tiempo y timeline en una sola pantalla." />
-    <meta property="og:url" content="https://fuchitron.vercel.app/" />
+    <meta property="og:url" content="https://fuchitron.app/" />
     <meta property="og:image" content="https://fuchitron.app/icons/og-image.png" />
     <meta property="og:image:alt" content="Logo de Fuchitron" />
 
@@ -41,11 +41,8 @@
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Lexend:wght@400;700;900&family=Anton+SC&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,700,1,0" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="fonts.css?v=20261017" />
+    <link rel="stylesheet" href="styles.css?v=20261017" />
   </head>
   <body>
     <div id="goalBanner" class="goal-banner" aria-hidden="true">GOOOOL ⚽</div>
@@ -54,15 +51,15 @@
       <button id="snackbarAction" class="snackbar-action"></button>
     </div>
     <div id="updateBanner" class="update-banner" hidden>
-      <span>Hay una nueva versión de Fuchitron.</span>
-      <button id="updateNow" class="update-btn">Actualizar ahora</button>
+      <span data-i18n="updateAvailable">Hay una nueva versión de Fuchitron.</span>
+      <button id="updateNow" data-i18n="updateNow" class="update-btn">Actualizar ahora</button>
     </div>
 
-    <dialog id="settingsDialog" class="settings-dialog">
+    <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
       <div class="settings-dialog-header">
-        <h2 data-i18n="ajustes">Ajustes</h2>
+        <h2 id="settingsTitle" data-i18n="ajustes">Ajustes</h2>
         <button id="closeSettings" class="icon-btn" aria-label="Cerrar ajustes">
-          <span class="material-symbols-outlined">close</span>
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       </div>
       <div class="settings-dialog-body">
@@ -99,34 +96,26 @@
           <label id="lblKeepScreenOn" data-i18n="mantenerPantalla">Mantener pantalla encendida</label>
           <div class="toggle-row">
             <label class="switch">
-              <input type="checkbox" id="keepScreenOn" />
+              <input type="checkbox" id="keepScreenOn" aria-labelledby="lblKeepScreenOn" />
               <span class="slider"></span>
             </label>
           </div>
         </div>
         <div class="coming-soon" data-i18n="comingSoon">🎯 En desarrollo: penaltis, tiempo supplementario</div>
         <div class="settings-dialog-footer">
-          <small>¿Preguntas? ¿Ideas? <a href="mailto:feedback@fuchitron.app">feedback@fuchitron.app</a></small>
+          <small><span data-i18n="feedback">¿Preguntas? ¿Ideas?</span> <a href="mailto:feedback@fuchitron.app">feedback@fuchitron.app</a></small>
         </div>
       </div>
     </dialog>
 
-    <dialog id="shareDialog" class="settings-dialog">
+    <dialog id="shareDialog" class="settings-dialog" aria-labelledby="shareTitle">
       <div class="settings-dialog-header">
-        <h2>Compartir</h2>
+        <h2 id="shareTitle">Compartir</h2>
         <button id="closeShare" class="icon-btn" aria-label="Cerrar">
-          <span class="material-symbols-outlined">close</span>
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       </div>
       <div class="settings-dialog-body">
-        <section class="live-link-section">
-          <p class="share-section-label" data-i18n="liveLinkSection">Live link</p>
-          <button id="createSpectateBtn" class="share-dialog-btn primary">
-            <span class="material-symbols-outlined">link</span>
-            <span data-i18n="copyLiveLink">Copy live link</span>
-          </button>
-          <p class="live-link-description" data-i18n="liveLinkDescription">Anyone with the link can follow match progress live.</p>
-        </section>
         <div class="share-dialog-columns">
           <div class="share-col">
             <p class="share-section-label" data-i18n="imagen">Imagen</p>
@@ -137,15 +126,15 @@
             </label>
             <div class="share-col-actions">
               <button id="shareImageBtn" class="share-dialog-btn">
-                <span class="material-symbols-outlined">share</span>
-                <span data-i18n="whatsApp">WhatsApp</span>
+                <span class="material-symbols-outlined" aria-hidden="true">share</span>
+                <span data-i18n="compartir">Compartir</span>
               </button>
               <button id="copyImageBtn" class="share-dialog-btn ghost">
-                <span class="material-symbols-outlined">content_copy</span>
+                <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
                 <span data-i18n="copiar">Copiar</span>
               </button>
               <button id="downloadImageBtn" class="share-dialog-btn ghost">
-                <span class="material-symbols-outlined">download</span>
+                <span class="material-symbols-outlined" aria-hidden="true">download</span>
                 <span data-i18n="descargar">Descargar</span>
               </button>
             </div>
@@ -163,15 +152,15 @@
             </label>
             <div class="share-col-actions">
               <button id="shareTextBtn" class="share-dialog-btn">
-                <span class="material-symbols-outlined">share</span>
-                <span data-i18n="whatsApp">WhatsApp</span>
+                <span class="material-symbols-outlined" aria-hidden="true">share</span>
+                <span data-i18n="compartir">Compartir</span>
               </button>
               <button id="copyTextBtn" class="share-dialog-btn ghost">
-                <span class="material-symbols-outlined">content_copy</span>
+                <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
                 <span data-i18n="copiar">Copiar</span>
               </button>
               <button id="downloadTxtBtn" class="share-dialog-btn ghost">
-                <span class="material-symbols-outlined">download</span>
+                <span class="material-symbols-outlined" aria-hidden="true">download</span>
                 <span>.txt</span>
               </button>
             </div>
@@ -180,6 +169,7 @@
       </div>
     </dialog>
 
+    <div id="storageBanner" class="storage-banner" role="alert" hidden></div>
     <div id="offlineBanner" class="offline-banner" role="status" aria-live="polite" hidden data-i18n="offlineBanner">Sin conexión · los goles se guardan localmente</div>
     <header class="topbar">
       <div class="topbar-inner">
@@ -189,13 +179,13 @@
         </div>
         <div class="topbar-actions">
           <button id="fullscreenBtn" class="icon-btn" aria-label="Pantalla completa" data-i18n-title="pantallaCompleta">
-            <span class="material-symbols-outlined">fullscreen</span>
+            <span class="material-symbols-outlined" aria-hidden="true">fullscreen</span>
           </button>
           <button id="shareBtn" class="icon-btn" aria-label="Compartir">
-            <span class="material-symbols-outlined">share</span>
+            <span class="material-symbols-outlined" aria-hidden="true">share</span>
           </button>
           <button id="settingsBtn" class="icon-btn" aria-label="Abrir ajustes">
-            <span class="material-symbols-outlined">settings</span>
+            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
           </button>
         </div>
       </div>
@@ -228,16 +218,16 @@
           </article>
         </div>
 
-        <div class="vs-chip">VS</div>
+        <div class="vs-chip" aria-hidden="true">VS</div>
       </section>
 
       <section class="goal-buttons-outside">
         <button id="plusA" class="goal-btn goal-btn-a">
-          <span class="material-symbols-outlined">add_circle</span>
+          <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
           <span>GOL LOCAL</span>
         </button>
         <button id="plusB" class="goal-btn goal-btn-b">
-          <span class="material-symbols-outlined">add_circle</span>
+          <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
           <span>GOL VISITANTE</span>
         </button>
       </section>
@@ -245,15 +235,15 @@
       <section class="card timer-box">
         <div class="timer-actions">
           <button id="startPause" class="icon-label-btn icon-left">
-            <span class="material-symbols-outlined">timer_play</span>
+            <span class="material-symbols-outlined" aria-hidden="true">timer_play</span>
             <span>Iniciar</span>
           </button>
           <button id="nextPeriod" class="ghost icon-label-btn icon-left">
-            <span class="material-symbols-outlined">timer_off</span>
+            <span class="material-symbols-outlined" aria-hidden="true">timer_off</span>
             <span>Terminar 1T</span>
           </button>
           <button id="resetTimer" class="ghost icon-label-btn icon-left">
-            <span class="material-symbols-outlined">restart_alt</span>
+            <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
             <span>Nuevo partido</span>
           </button>
         </div>
@@ -261,7 +251,7 @@
 
       <section id="timelineSection" class="card timeline-card" hidden>
         <div class="section-head">
-          <h2>Timeline</h2>
+          <h2 data-i18n="timeline">Timeline</h2>
         </div>
         <ul id="goalsList"></ul>
       </section>
@@ -276,7 +266,7 @@
 
     <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
-    <script src="i18n.js"></script>
-  <script src="app.js"></script>
+    <script src="i18n.js?v=20261017"></script>
+  <script src="app.js?v=20261017"></script>
   </body>
 </html>
